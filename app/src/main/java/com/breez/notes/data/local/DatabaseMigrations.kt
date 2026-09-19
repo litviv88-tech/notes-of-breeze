@@ -4,14 +4,6 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 internal object DatabaseMigrations {
-    val ALL = arrayOf(
-        MIGRATION_1_2,
-        MIGRATION_2_3,
-        MIGRATION_3_4,
-        MIGRATION_4_5,
-        MIGRATION_5_6
-    )
-
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.addColumnIfMissing("widget_configs", "cellWidth", "INTEGER NOT NULL DEFAULT 3")
@@ -85,6 +77,22 @@ internal object DatabaseMigrations {
             db.ensureCurrentIndexes()
         }
     }
+
+    private val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.addColumnIfMissing("notes", "isArchived", "INTEGER NOT NULL DEFAULT 0")
+            db.ensureCurrentIndexes()
+        }
+    }
+
+    val ALL = arrayOf(
+        MIGRATION_1_2,
+        MIGRATION_2_3,
+        MIGRATION_3_4,
+        MIGRATION_4_5,
+        MIGRATION_5_6,
+        MIGRATION_6_7
+    )
 
     private fun SupportSQLiteDatabase.hasColumn(table: String, column: String): Boolean {
         query("PRAGMA table_info(`$table`)").use { cursor ->

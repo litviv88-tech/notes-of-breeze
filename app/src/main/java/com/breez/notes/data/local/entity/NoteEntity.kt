@@ -35,6 +35,7 @@ data class NoteEntity(
     val repeatWeekDays: String,
     val repeatUntilAt: Long?,
     val isChecklist: Boolean = false,
+    val isArchived: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long
 )

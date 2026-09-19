@@ -20,7 +20,7 @@ object WidgetData {
                 if (noteId == null) emptyList() else listOfNotNull(repo.getById(noteId))
             }
         }
-        return all.take(config.maxNotes.coerceIn(1, 5))
+        return all.filter { !it.isArchived }.take(config.maxNotes.coerceIn(1, 5))
     }
 
     fun buildRows(notes: List<Note>, config: WidgetConfig): List<WidgetRow> {

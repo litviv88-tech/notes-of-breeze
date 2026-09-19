@@ -13,8 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +27,10 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -48,6 +56,9 @@ fun NoteCard(
     onTogglePin: () -> Unit,
     modifier: Modifier = Modifier,
     swipeEnabled: Boolean = true,
+    swipeLabel: String = stringResource(R.string.note_archive),
+    onToggleChecklistItem: ((Int) -> Unit)? = null,
+    onOrganize: ((NoteOrganizeAction) -> Unit)? = null,
     reorderHandleModifier: Modifier? = null
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
@@ -73,7 +84,7 @@ fun NoteCard(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Text(text = stringResource(R.string.note_delete), color = PureWhite)
+                Text(text = swipeLabel, color = PureWhite)
             }
         }
     ) {
@@ -104,15 +115,29 @@ fun NoteCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     if (note.isChecklist) {
-                        ChecklistFormat.preview(note.body).forEach { item ->
-                            Text(
-                                text = (if (item.done) "✓  " else "○  ") + item.text,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textDecoration = if (item.done) TextDecoration.LineThrough else TextDecoration.None,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (item.done) 0.45f else 0.75f)
-                            )
+                        ChecklistFormat.preview(note.body).forEachIndexed { index, item ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (onToggleChecklistItem != null) {
+                                    Checkbox(
+                                        checked = item.done,
+                                        onCheckedChange = { onToggleChecklistItem(index) }
+                                    )
+                                }
+                                Text(
+                                    text = if (onToggleChecklistItem == null) {
+                                        (if (item.done) "✓  " else "○  ") + item.text
+                                    } else {
+                                        item.text
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textDecoration = if (item.done) TextDecoration.LineThrough else TextDecoration.None,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(
+                                        alpha = if (item.done) 0.45f else 0.75f
+                                    )
+                                )
+                            }
                         }
                     } else if (note.body.isNotBlank()) {
                         Text(
@@ -140,14 +165,50 @@ fun NoteCard(
                         )
                     }
                 }
-                IconButton(onClick = onTogglePin) {
-                    Icon(
-                        imageVector = if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                        contentDescription = stringResource(
-                            if (note.isPinned) R.string.note_unpin else R.string.note_pin
-                        ),
-                        tint = if (note.isPinned) PinGold else MaterialTheme.colorScheme.onSurface
-                    )
+                if (!note.isArchived) {
+                    IconButton(onClick = onTogglePin) {
+                        Icon(
+                            imageVector = if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                            contentDescription = stringResource(
+                                if (note.isPinned) R.string.note_unpin else R.string.note_pin
+                            ),
+                            tint = if (note.isPinned) PinGold else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                if (onOrganize != null && !note.isArchived) {
+                    var menuOpen by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = stringResource(R.string.note_more)
+                            )
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.note_rename)) },
+                                onClick = {
+                                    menuOpen = false
+                                    onOrganize(NoteOrganizeAction.RENAME)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.note_copy_to_folder)) },
+                                onClick = {
+                                    menuOpen = false
+                                    onOrganize(NoteOrganizeAction.COPY)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.note_move_to_folder)) },
+                                onClick = {
+                                    menuOpen = false
+                                    onOrganize(NoteOrganizeAction.MOVE)
+                                }
+                            )
+                        }
+                    }
                 }
                 if (reorderHandleModifier != null) {
                     ReorderHandle(

@@ -13,8 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +45,9 @@ import com.breez.notes.domain.usecase.DeleteNote
 import com.breez.notes.ui.components.BreezButton
 import com.breez.notes.ui.components.BreezTextButton
 import com.breez.notes.ui.components.BreezTopBar
+import com.breez.notes.ui.notes.FolderTargetDialog
+import com.breez.notes.ui.notes.NoteOrganizeAction
+import com.breez.notes.ui.notes.RenameTitleDialog
 import com.breez.notes.ui.reorder.ReorderableNoteList
 import com.breez.notes.ui.theme.Transparent
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -146,8 +147,25 @@ class FolderDetailViewModel @Inject constructor(
         viewModelScope.launch { noteRepository.moveToFolder(noteId, targetFolderId) }
     }
 
+    fun copyNote(noteId: Long, targetFolderId: Long?) {
+        viewModelScope.launch { noteRepository.copyToFolder(noteId, targetFolderId) }
+    }
+
+    fun renameNote(noteId: Long, title: String) {
+        if (title.isBlank()) return
+        viewModelScope.launch { noteRepository.rename(noteId, title) }
+    }
+
     fun deleteNote(note: Note) {
-        viewModelScope.launch { deleteNoteUseCase(note) }
+        viewModelScope.launch { noteRepository.setArchived(note.id, true) }
+    }
+
+    fun toggleChecklistItem(note: Note, visibleIndex: Int) {
+        viewModelScope.launch {
+            noteRepository.upsert(
+                note.copy(body = com.breez.notes.domain.model.ChecklistFormat.toggleVisible(note.body, visibleIndex))
+            )
+        }
     }
 
     fun togglePin(note: Note) {
@@ -171,7 +189,8 @@ fun FolderDetailScreen(
     val context = LocalContext.current
     var editOpen by remember { mutableStateOf(false) }
     var deleteOpen by remember { mutableStateOf(false) }
-    var moveNoteId by remember { mutableStateOf<Long?>(null) }
+    var organizeNote by remember { mutableStateOf<Note?>(null) }
+    var organizeAction by remember { mutableStateOf<NoteOrganizeAction?>(null) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -227,13 +246,13 @@ fun FolderDetailScreen(
                     onOpenNote = onOpenNote,
                     onDelete = viewModel::deleteNote,
                     onTogglePin = viewModel::togglePin,
+                    onToggleChecklistItem = viewModel::toggleChecklistItem,
+                    onOrganize = { note, action ->
+                        organizeNote = note
+                        organizeAction = action
+                    },
                     modifier = Modifier.fillMaxSize()
-                ) { note ->
-                    BreezTextButton(
-                        text = stringResource(R.string.folder_move_notes),
-                        onClick = { moveNoteId = note.id }
-                    )
-                }
+                )
             }
         }
     }
@@ -267,26 +286,47 @@ fun FolderDetailScreen(
         )
     }
 
-    val movingId = moveNoteId
-    if (movingId != null) {
-        DropdownMenu(expanded = true, onDismissRequest = { moveNoteId = null }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.editor_no_folder)) },
-                onClick = {
-                    viewModel.moveNote(movingId, null)
-                    moveNoteId = null
-                }
-            )
-            state.allFolders.forEach { item ->
-                DropdownMenuItem(
-                    text = { Text(item.name) },
-                    leadingIcon = { FolderMarkBadge(folder = item, size = 20.dp) },
-                    onClick = {
-                        viewModel.moveNote(movingId, item.id)
-                        moveNoteId = null
-                    }
-                )
-            }
+    val currentNote = organizeNote
+    RenameTitleDialog(
+        visible = currentNote != null && organizeAction == NoteOrganizeAction.RENAME,
+        title = stringResource(R.string.note_rename),
+        initial = currentNote?.title.orEmpty(),
+        hint = stringResource(R.string.note_rename_hint),
+        onDismiss = {
+            organizeNote = null
+            organizeAction = null
+        },
+        onConfirm = { title ->
+            currentNote?.let { viewModel.renameNote(it.id, title) }
+            organizeNote = null
+            organizeAction = null
         }
-    }
+    )
+    FolderTargetDialog(
+        visible = currentNote != null &&
+            (organizeAction == NoteOrganizeAction.COPY || organizeAction == NoteOrganizeAction.MOVE),
+        title = stringResource(
+            if (organizeAction == NoteOrganizeAction.COPY) {
+                R.string.note_copy_to_folder
+            } else {
+                R.string.note_move_to_folder
+            }
+        ),
+        folders = state.allFolders,
+        selectedId = currentNote?.folderId ?: folder?.id,
+        onDismiss = {
+            organizeNote = null
+            organizeAction = null
+        },
+        onConfirm = { folderId ->
+            val note = currentNote
+            val action = organizeAction
+            if (note != null) {
+                if (action == NoteOrganizeAction.COPY) viewModel.copyNote(note.id, folderId)
+                else viewModel.moveNote(note.id, folderId)
+            }
+            organizeNote = null
+            organizeAction = null
+        }
+    )
 }

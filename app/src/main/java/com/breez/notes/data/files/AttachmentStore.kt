@@ -36,4 +36,15 @@ class AttachmentStore @Inject constructor(
     fun deleteAll(noteId: Long) {
         dir(noteId).deleteRecursively()
     }
+
+    fun copyAll(fromNoteId: Long, toNoteId: Long) {
+        val source = File(context.filesDir, "attachments/$fromNoteId")
+        if (!source.isDirectory) return
+        val dest = dir(toNoteId)
+        source.listFiles()?.forEach { file ->
+            if (file.isFile) {
+                file.copyTo(File(dest, file.name), overwrite = true)
+            }
+        }
+    }
 }

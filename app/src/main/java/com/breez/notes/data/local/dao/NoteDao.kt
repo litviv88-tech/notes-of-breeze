@@ -14,22 +14,26 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface NoteDao {
     @Transaction
-    @Query("SELECT * FROM notes ORDER BY sortOrder ASC, isPinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM notes WHERE isArchived = 0 ORDER BY sortOrder ASC, isPinned DESC, updatedAt DESC")
     fun observeAll(): Flow<List<NoteWithAttachments>>
 
     @Transaction
-    @Query("SELECT * FROM notes WHERE folderId = :folderId ORDER BY sortOrder ASC, isPinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM notes WHERE isArchived = 1 ORDER BY updatedAt DESC")
+    fun observeArchived(): Flow<List<NoteWithAttachments>>
+
+    @Transaction
+    @Query("SELECT * FROM notes WHERE folderId = :folderId AND isArchived = 0 ORDER BY sortOrder ASC, isPinned DESC, updatedAt DESC")
     fun observeByFolder(folderId: Long): Flow<List<NoteWithAttachments>>
 
     @Transaction
-    @Query("SELECT * FROM notes WHERE folderId IS NULL ORDER BY sortOrder ASC, isPinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM notes WHERE folderId IS NULL AND isArchived = 0 ORDER BY sortOrder ASC, isPinned DESC, updatedAt DESC")
     fun observeWithoutFolder(): Flow<List<NoteWithAttachments>>
 
     @Transaction
     @Query(
         """
         SELECT * FROM notes
-        WHERE id IN (
+        WHERE isArchived = 0 AND id IN (
             SELECT notes.id FROM notes
             LEFT JOIN attachments ON attachments.noteId = notes.id
             WHERE notes.title LIKE '%' || :query || '%'
@@ -47,7 +51,7 @@ interface NoteDao {
     suspend fun getAll(): List<NoteWithAttachments>
 
     @Transaction
-    @Query("SELECT * FROM notes WHERE folderId = :folderId ORDER BY sortOrder ASC, isPinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM notes WHERE folderId = :folderId AND isArchived = 0 ORDER BY sortOrder ASC, isPinned DESC, updatedAt DESC")
     suspend fun getByFolder(folderId: Long): List<NoteWithAttachments>
 
     @Transaction
@@ -68,6 +72,9 @@ interface NoteDao {
 
     @Query("UPDATE notes SET isPinned = :pinned, updatedAt = :updatedAt WHERE id = :id")
     suspend fun setPinned(id: Long, pinned: Boolean, updatedAt: Long)
+
+    @Query("UPDATE notes SET isArchived = :archived, isPinned = CASE WHEN :archived = 1 THEN 0 ELSE isPinned END, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setArchived(id: Long, archived: Boolean, updatedAt: Long)
 
     @Query("UPDATE notes SET folderId = :folderId, updatedAt = :updatedAt WHERE id = :id")
     suspend fun moveToFolder(id: Long, folderId: Long?, updatedAt: Long)

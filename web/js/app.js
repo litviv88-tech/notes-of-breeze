@@ -27,7 +27,7 @@ const I18N = {
     appearance: "Внешний вид",
     wallpaper: "Обои",
     about: "О приложении",
-    aboutText: "Breez Notes 1.3.0 — спокойные заметки с палитрами и обоями. Веб-версия хранит данные в этом браузере.",
+    aboutText: "Breez Notes 1.3.2 — спокойные заметки с палитрами и обоями. Веб-версия хранит данные в этом браузере.",
     save: "Сохранить",
     title: "Заголовок",
     body: "Текст заметки",
@@ -72,7 +72,23 @@ const I18N = {
     todoItem: "Дело",
     todoAdd: "Добавить пункт",
     folderCreate: "Создать папку",
-    folderCreateText: "Здесь хранятся заметки и списки дел"
+    folderCreateText: "Здесь хранятся заметки и списки дел",
+    archive: "Архив",
+    archiveEmpty: "В архиве пусто",
+    archiveNote: "В архив",
+    unarchiveNote: "Вернуть из архива",
+    share: "Поделиться",
+    calendar: "В календарь",
+    backup: "Сохранить копию",
+    backupText: "Файл заметок, чтобы не потерять их при смене телефона",
+    backupImport: "Восстановить из копии",
+    backupImportText: "Загрузить заметки из JSON-файла",
+    backupDone: "Копия готова",
+    backupRestored: "Заметки восстановлены",
+    more: "Ещё",
+    rename: "Переименовать",
+    copyTo: "Копировать в папку",
+    moveTo: "Переместить в папку"
   },
   en: {
     app: "Breez Notes",
@@ -102,7 +118,7 @@ const I18N = {
     appearance: "Appearance",
     wallpaper: "Wallpaper",
     about: "About",
-    aboutText: "Breez Notes 1.3.0 — calm notes with palettes and wallpapers. The web version stores data in this browser.",
+    aboutText: "Breez Notes 1.3.2 — calm notes with palettes and wallpapers. The web version stores data in this browser.",
     save: "Save",
     title: "Title",
     body: "Note text",
@@ -147,7 +163,23 @@ const I18N = {
     todoItem: "Task",
     todoAdd: "Add item",
     folderCreate: "Create folder",
-    folderCreateText: "Notes and to-do lists live here"
+    folderCreateText: "Notes and to-do lists live here",
+    archive: "Archive",
+    archiveEmpty: "Archive is empty",
+    archiveNote: "Archive",
+    unarchiveNote: "Unarchive",
+    share: "Share",
+    calendar: "Add to calendar",
+    backup: "Save a copy",
+    backupText: "Keep a file so notes survive a new phone",
+    backupImport: "Restore from copy",
+    backupImportText: "Load notes from a JSON file",
+    backupDone: "Copy ready",
+    backupRestored: "Notes restored",
+    more: "More",
+    rename: "Rename",
+    copyTo: "Copy to folder",
+    moveTo: "Move to folder"
   }
 };
 
@@ -183,10 +215,10 @@ const WALLS = [
 
 const KEY = "breez-web-v2";
 const LEGACY_KEYS = ["breez-web-v1", "breez-notes"];
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const APK = "./downloads/BreezNotes.apk";
-const WEB_VERSION = 7;
-const APP_VERSION = "1.3.0";
+const WEB_VERSION = 9;
+const APP_VERSION = "1.3.2";
 
 let waitingWorker = null;
 let updateInfo = {
@@ -259,6 +291,7 @@ function normalizeNote(note, index) {
     colorHex: note?.colorHex || "#4A90E2",
     pinned: !!(note?.pinned || note?.isPinned),
     isChecklist: !!note?.isChecklist,
+    isArchived: !!note?.isArchived,
     sortOrder: Number.isFinite(note?.sortOrder) ? note.sortOrder : (index ?? 0),
     reminderAt: note?.reminderAt ?? null,
     meetingPlace: note?.meetingPlace || "",
@@ -315,6 +348,7 @@ let editorChecklist = false;
 let folderId = null;
 let query = "";
 let selectedFolder = null;
+let showingArchive = false;
 let hsv = { h: 210, s: 0.67, v: 0.89 };
 
 function save() {
@@ -371,7 +405,8 @@ function applyChrome() {
 
 function filteredNotes() {
   let notes = [...state.notes].sort((a, b) => (b.pinned - a.pinned) || (b.updatedAt - a.updatedAt));
-  if (selectedFolder) notes = notes.filter((n) => n.folderId === selectedFolder);
+  notes = notes.filter((n) => showingArchive ? n.isArchived : !n.isArchived);
+  if (!showingArchive && selectedFolder) notes = notes.filter((n) => n.folderId === selectedFolder);
   if (query.trim()) {
     const q = query.trim().toLowerCase();
     notes = notes.filter((n) => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q));
@@ -400,7 +435,7 @@ function noteById(id) {
 }
 
 function folderCount(id) {
-  return state.notes.filter((n) => n.folderId === id).length;
+  return state.notes.filter((n) => n.folderId === id && !n.isArchived).length;
 }
 
 function parseChecklist(body) {
@@ -495,6 +530,27 @@ function renderLanding() {
     </div>`;
 }
 
+function noteCardHtml(n, options = {}) {
+  const showPin = options.showPin !== false && !n.isArchived;
+  const showMenu = options.showMenu !== false && !n.isArchived;
+  const checklist = n.isChecklist
+    ? parseChecklist(n.body).filter((item) => item.text).slice(0, 3).map((item) =>
+      `<p class="${item.done ? "todo-done" : ""}">${item.done ? "✓" : "○"} ${escapeHtml(item.text)}</p>`
+    ).join("")
+    : `<p>${escapeHtml(n.body || "")}</p>`;
+  return `<article class="note" data-open="${escapeHtml(n.id)}">
+    <div class="note-stripe" style="background:${escapeHtml(n.colorHex || "#4A90E2")}"></div>
+    <div class="note-body">
+      <h3>${n.pinned ? "📌 " : ""}${escapeHtml(n.title || t("untitled"))}</h3>
+      ${checklist}
+    </div>
+    <div class="note-actions">
+      ${showPin ? `<button class="pin" data-pin="${escapeHtml(n.id)}">${n.pinned ? "★" : "☆"}</button>` : ""}
+      ${showMenu ? `<button class="more" data-note-menu="${escapeHtml(n.id)}" aria-label="${t("more")}">⋮</button>` : ""}
+    </div>
+  </article>`;
+}
+
 function renderNotes() {
   const notes = filteredNotes();
   return appScreen(`
@@ -504,19 +560,12 @@ function renderNotes() {
     </div>
     <div class="search-wrap"><input class="search" id="search" placeholder="${t("search")}" value="${escapeHtml(query)}"></div>
     <div class="chips">
-      <button class="chip ${selectedFolder ? "" : "active"}" data-folder="">${t("all")}</button>
-      ${state.folders.map((f) => `<button class="chip ${selectedFolder === f.id ? "active" : ""}" data-folder="${escapeHtml(f.id)}"><span class="chip-mark" style="background:${escapeHtml(f.colorHex || "#7ED9C4")}"></span>${escapeHtml(f.name)}</button>`).join("")}
+      <button class="chip ${!selectedFolder && !showingArchive ? "active" : ""}" data-folder="">${t("all")}</button>
+      ${state.folders.map((f) => `<button class="chip ${!showingArchive && selectedFolder === f.id ? "active" : ""}" data-folder="${escapeHtml(f.id)}"><span class="chip-mark" style="background:${escapeHtml(f.colorHex || "#7ED9C4")}"></span>${escapeHtml(f.name)}</button>`).join("")}
+      <button class="chip ${showingArchive ? "active" : ""}" data-archive="1">${t("archive")}</button>
     </div>
     <div class="notes-main">
-      ${notes.length === 0 ? `<div class="empty">${t("empty")}</div>` : `<div class="list">${notes.map((n) => `
-        <article class="note" data-open="${escapeHtml(n.id)}">
-          <div class="note-stripe" style="background:${escapeHtml(n.colorHex || "#4A90E2")}"></div>
-          <div class="note-body">
-            <h3>${n.pinned ? "📌 " : ""}${escapeHtml(n.title || t("untitled"))}</h3>
-            ${n.isChecklist ? parseChecklist(n.body).filter((item) => item.text).slice(0, 3).map((item) => `<p class="${item.done ? "todo-done" : ""}">${item.done ? "✓" : "○"} ${escapeHtml(item.text)}</p>`).join("") : `<p>${escapeHtml(n.body || "")}</p>`}
-          </div>
-          <button class="pin" data-pin="${escapeHtml(n.id)}">${n.pinned ? "★" : "☆"}</button>
-        </article>`).join("")}</div>`}
+      ${notes.length === 0 ? `<div class="empty">${t(showingArchive ? "archiveEmpty" : "empty")}</div>` : `<div class="list">${notes.map((n) => noteCardHtml(n, { showMenu: !showingArchive, showPin: !showingArchive })).join("")}</div>`}
     </div>
     <div class="home-dock">
       <div class="settings-item" data-new-todo><div><b>${t("todoCreate")}</b><div>${t("todoCreateText")}</div></div><span>›</span></div>
@@ -527,6 +576,9 @@ function renderNotes() {
         <button class="chip ${state.themeMode === "LIGHT" ? "active" : ""}" data-mode="LIGHT">${t("light")}</button>
         <button class="chip ${state.themeMode === "DARK" ? "active" : ""}" data-mode="DARK">${t("dark")}</button>
       </div>
+      <div class="settings-item" data-backup-export><div><b>${t("backup")}</b><div>${t("backupText")}</div></div><span>›</span></div>
+      <div class="settings-item" data-backup-import><div><b>${t("backupImport")}</b><div>${t("backupImportText")}</div></div><span>›</span></div>
+      <input type="file" id="backup-file" accept="application/json,text/plain" hidden>
       ${renderUpdateSettings()}
     </div>`);
 }
@@ -558,6 +610,10 @@ function renderEditor() {
       <label>${t("color")}</label>
       <input class="field" id="note-color" type="color" value="${note.colorHex || "#4A90E2"}">
       <button class="btn secondary" id="toggle-pin">${note.pinned ? t("unpin") : t("pin")}</button>
+      <button class="btn secondary" id="share-note">${t("share")}</button>
+      ${note.reminderAt ? `<button class="btn secondary" id="calendar-note">${t("calendar")}</button>` : ""}
+      ${editorId ? `<button class="btn secondary" id="copy-note">${t("copyTo")}</button>` : ""}
+      ${editorId ? `<button class="btn secondary" id="archive-note">${note.isArchived ? t("unarchiveNote") : t("archiveNote")}</button>` : ""}
       ${editorId ? `<button class="btn secondary" id="delete-note">${t("del")}</button>` : ""}
     </div>`);
 }
@@ -572,6 +628,7 @@ function renderFolders() {
     <div class="grid-2">
       ${state.folders.map((f) => `
         <article class="card folder-card" data-open-folder="${escapeHtml(f.id)}" style="--folder-color:${escapeHtml(f.colorHex || "#7ED9C4")}">
+          <button class="folder-edit" data-edit-folder="${escapeHtml(f.id)}" aria-label="${t("rename")}">✎</button>
           <h3>${escapeHtml(f.name)}</h3>
           <p>${folderCount(f.id)}</p>
         </article>`).join("")}
@@ -586,13 +643,12 @@ function renderFolder() {
     <div class="app-top">
       <button class="icon-btn" data-go="folders">←</button>
       <strong>${folder ? escapeHtml(folder.name) : t("folders")}</strong>
-      <button class="icon-btn" id="delete-folder">🗑</button>
+      <div class="actions">
+        <button class="icon-btn" id="rename-folder" aria-label="${t("rename")}">✎</button>
+        <button class="icon-btn" id="delete-folder">🗑</button>
+      </div>
     </div>
-    ${notes.length === 0 ? `<div class="empty">${t("empty")}</div>` : `<div class="list">${notes.map((n) => `
-      <article class="note" data-open="${escapeHtml(n.id)}">
-        <div class="note-stripe" style="background:${escapeHtml(n.colorHex || "#4A90E2")}"></div>
-        <div class="note-body"><h3>${escapeHtml(n.title || t("untitled"))}</h3><p>${escapeHtml(n.body || "")}</p></div>
-      </article>`).join("")}</div>`}`);
+    ${notes.length === 0 ? `<div class="empty">${t("empty")}</div>` : `<div class="list">${notes.map((n) => noteCardHtml(n)).join("")}</div>`}`);
 }
 
 function renderSettings() {
@@ -614,7 +670,7 @@ function renderSettings() {
 function renderTheme() {
   const modes = [["SYSTEM", t("system")], ["LIGHT", t("light")], ["DARK", t("dark")], ["AUTO", t("auto")]];
   return appScreen(`
-    <div class="app-top"><button class="icon-btn" data-go="settings">←</button><strong>${t("appearance")}</strong><span></span></div>
+    <div class="app-top"><button class="icon-btn" data-go="notes">←</button><strong>${t("appearance")}</strong><span></span></div>
     <div class="pad">
       <div class="card" style="margin-bottom:16px"><b>${t("title")}</b><p>${t("heroText")}</p></div>
       <h3>${t("theme")}</h3>
@@ -628,7 +684,7 @@ function renderTheme() {
 function renderWallpaper() {
   const w = state.wallpaper;
   return appScreen(`
-    <div class="app-top"><button class="icon-btn" data-go="settings">←</button><strong>${t("wallpaper")}</strong><span></span></div>
+    <div class="app-top"><button class="icon-btn" data-go="notes">←</button><strong>${t("wallpaper")}</strong><span></span></div>
     <div class="pad">
       <div class="chips" style="padding:0 0 16px">
         <button class="chip ${w.type === "BUILTIN" ? "active" : ""}" data-wtype="BUILTIN">${t("builtin")}</button>
@@ -763,13 +819,13 @@ function colorDialog() {
   </div>`;
 }
 
-function folderDialog() {
+function folderDialog(existing) {
   return `<div class="dialog-backdrop" id="folder-dialog">
     <div class="dialog">
-      <b>${t("newFolder")}</b>
-      <input class="field" id="folder-name" placeholder="${t("folderName")}">
-      <input class="field" id="folder-color" type="color" value="#7ED9C4">
-      <button class="btn" id="create-folder">${t("create")}</button>
+      <b>${existing ? t("rename") : t("newFolder")}</b>
+      <input class="field" id="folder-name" placeholder="${t("folderName")}" value="${escapeHtml(existing?.name || "")}">
+      <input class="field" id="folder-color" type="color" value="${existing?.colorHex || "#7ED9C4"}">
+      <button class="btn" id="create-folder">${existing ? t("save") : t("create")}</button>
       <button class="btn secondary" id="close-folder">${t("cancel")}</button>
     </div>
   </div>`;
@@ -800,7 +856,21 @@ function closestAction(target, selector) {
 function handleAppClick(event) {
   const target = event.target;
   if (!(target instanceof Element)) return;
-  if (closestAction(target, "#color-dialog, #folder-dialog")) return;
+  if (closestAction(target, "#color-dialog, #folder-dialog, #organize-dialog, #rename-dialog, #folder-pick-dialog")) return;
+
+  const noteMenu = closestAction(target, "[data-note-menu]");
+  if (noteMenu) {
+    event.preventDefault();
+    openNoteOrganize(noteMenu.dataset.noteMenu);
+    return;
+  }
+  const editFolder = closestAction(target, "[data-edit-folder]");
+  if (editFolder) {
+    event.preventDefault();
+    const folder = state.folders.find((item) => item.id === editFolder.dataset.editFolder);
+    if (folder) openFolderDialog(folder);
+    return;
+  }
 
   const pin = closestAction(target, "[data-pin]");
   if (pin) {
@@ -831,8 +901,17 @@ function handleAppClick(event) {
     render();
     return;
   }
+  const archiveChip = closestAction(target, "[data-archive]");
+  if (archiveChip) {
+    showingArchive = true;
+    selectedFolder = null;
+    query = "";
+    render();
+    return;
+  }
   const folderChip = closestAction(target, "[data-folder]");
   if (folderChip) {
+    showingArchive = false;
     selectedFolder = folderChip.dataset.folder || null;
     render();
     return;
@@ -879,6 +958,14 @@ function handleAppClick(event) {
     go("editor", { id: null, checklist: false });
     return;
   }
+  if (closestAction(target, "[data-backup-export]")) {
+    exportBackup();
+    return;
+  }
+  if (closestAction(target, "[data-backup-import]")) {
+    document.getElementById("backup-file")?.click();
+    return;
+  }
 
   const id = closestAction(target, "button, a, #add-folder")?.id;
   if (id === "save-note") saveNote();
@@ -890,12 +977,37 @@ function handleAppClick(event) {
     const title = document.getElementById("note-title")?.value || "";
     persistDraft(title, collectNoteBody(), true);
     render();
+  } else if (id === "share-note") {
+    shareCurrentNote();
+  } else if (id === "calendar-note") {
+    addCurrentNoteToCalendar();
+  } else if (id === "archive-note") {
+    const note = noteById(editorId);
+    if (note) {
+      note.isArchived = !note.isArchived;
+      if (note.isArchived) note.pinned = false;
+      note.updatedAt = Date.now();
+      save();
+      go("notes");
+    }
   } else if (id === "add-todo-item") {
     persistDraft(document.getElementById("note-title")?.value || "", `${collectNoteBody()}\n- [ ] `, false);
     editorChecklist = true;
     render();
   } else if (id === "add-folder") openFolderDialog();
-  else if (id === "delete-folder") {
+  else if (id === "rename-folder") {
+    const folder = state.folders.find((item) => item.id === folderId);
+    if (folder) openFolderDialog(folder);
+  } else if (id === "copy-note") {
+    persistDraft(document.getElementById("note-title")?.value || "", collectNoteBody(), false);
+    const note = noteById(editorId);
+    if (note) {
+      openFolderPick(t("copyTo"), note.folderId, (target) => {
+        copyNoteToFolder(note, target);
+        render();
+      });
+    }
+  } else if (id === "delete-folder") {
     state.notes.forEach((n) => { if (n.folderId === folderId) n.folderId = null; });
     state.folders = state.folders.filter((f) => f.id !== folderId);
     save();
@@ -938,7 +1050,14 @@ function handleAppInput(event) {
 
 function handleAppChange(event) {
   const target = event.target;
-  if (!(target instanceof HTMLInputElement) || target.id !== "photo-file") return;
+  if (!(target instanceof HTMLInputElement)) return;
+  if (target.id === "backup-file") {
+    const file = target.files && target.files[0];
+    target.value = "";
+    if (file) importBackupFile(file);
+    return;
+  }
+  if (target.id !== "photo-file") return;
   const file = target.files && target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -958,20 +1077,132 @@ function bindEvents() {
   root.addEventListener("click", handleAppClick);
   root.addEventListener("input", handleAppInput);
   root.addEventListener("change", handleAppChange);
+  root.addEventListener("contextmenu", handleFolderRenameContext);
 }
 
-function openFolderDialog() {
-  document.getElementById("app").insertAdjacentHTML("beforeend", folderDialog());
+function handleFolderRenameContext(event) {
+  const chip = closestAction(event.target, "[data-folder]");
+  if (!chip || !chip.dataset.folder) return;
+  event.preventDefault();
+  const folder = state.folders.find((item) => item.id === chip.dataset.folder);
+  if (folder) openFolderDialog(folder);
+}
+
+function copyNoteToFolder(note, folderId) {
+  const copy = normalizeNote({
+    ...note,
+    id: uid(),
+    folderId,
+    pinned: false,
+    isArchived: false,
+    reminderAt: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  });
+  state.notes.unshift(copy);
+  save();
+  return copy;
+}
+
+function openNoteOrganize(id) {
+  const note = noteById(id);
+  if (!note) return;
+  document.getElementById("app").insertAdjacentHTML("beforeend", `<div class="dialog-backdrop" id="organize-dialog">
+    <div class="dialog">
+      <b>${escapeHtml(note.title || t("untitled"))}</b>
+      <button class="btn secondary" id="org-rename">${t("rename")}</button>
+      <button class="btn secondary" id="org-copy">${t("copyTo")}</button>
+      <button class="btn secondary" id="org-move">${t("moveTo")}</button>
+      <button class="btn secondary" id="close-organize">${t("cancel")}</button>
+    </div>
+  </div>`);
+  const close = () => document.getElementById("organize-dialog")?.remove();
+  document.getElementById("close-organize").onclick = close;
+  document.getElementById("org-rename").onclick = () => {
+    close();
+    openRenameDialog(note.title || "", t("rename"), (value) => {
+      note.title = value;
+      note.updatedAt = Date.now();
+      save();
+      render();
+    });
+  };
+  document.getElementById("org-copy").onclick = () => {
+    close();
+    openFolderPick(t("copyTo"), note.folderId, (target) => {
+      copyNoteToFolder(note, target);
+      render();
+    });
+  };
+  document.getElementById("org-move").onclick = () => {
+    close();
+    openFolderPick(t("moveTo"), note.folderId, (target) => {
+      note.folderId = target;
+      note.updatedAt = Date.now();
+      save();
+      render();
+    });
+  };
+}
+
+function openRenameDialog(value, title, onDone) {
+  document.getElementById("app").insertAdjacentHTML("beforeend", `<div class="dialog-backdrop" id="rename-dialog">
+    <div class="dialog">
+      <b>${escapeHtml(title)}</b>
+      <input class="field" id="rename-value" value="${escapeHtml(value)}">
+      <button class="btn" id="confirm-rename">${t("save")}</button>
+      <button class="btn secondary" id="close-rename">${t("cancel")}</button>
+    </div>
+  </div>`);
+  const input = document.getElementById("rename-value");
+  input.focus();
+  input.select();
+  document.getElementById("close-rename").onclick = () => document.getElementById("rename-dialog")?.remove();
+  document.getElementById("confirm-rename").onclick = () => {
+    const next = input.value.trim();
+    if (!next) return;
+    document.getElementById("rename-dialog")?.remove();
+    onDone(next);
+  };
+}
+
+function openFolderPick(title, selected, onDone) {
+  document.getElementById("app").insertAdjacentHTML("beforeend", `<div class="dialog-backdrop" id="folder-pick-dialog">
+    <div class="dialog">
+      <b>${escapeHtml(title)}</b>
+      <button class="btn secondary ${selected ? "" : "active"}" data-pick-folder="">${t("noFolder")}</button>
+      ${state.folders.map((folder) => `<button class="btn secondary ${selected === folder.id ? "active" : ""}" data-pick-folder="${escapeHtml(folder.id)}">${escapeHtml(folder.name)}</button>`).join("")}
+      <button class="btn secondary" id="close-folder-pick">${t("cancel")}</button>
+    </div>
+  </div>`);
+  document.getElementById("close-folder-pick").onclick = () => document.getElementById("folder-pick-dialog")?.remove();
+  document.querySelectorAll("#folder-pick-dialog [data-pick-folder]").forEach((button) => {
+    button.onclick = () => {
+      const folderId = button.dataset.pickFolder || null;
+      document.getElementById("folder-pick-dialog")?.remove();
+      onDone(folderId);
+    };
+  });
+}
+
+function openFolderDialog(existing) {
+  document.getElementById("app").insertAdjacentHTML("beforeend", folderDialog(existing));
   document.getElementById("close-folder").onclick = () => document.getElementById("folder-dialog").remove();
   document.getElementById("create-folder").onclick = () => {
     const name = document.getElementById("folder-name").value.trim();
     if (!name) return;
-    state.folders.push(normalizeFolder({
-      id: uid(),
-      name,
-      colorHex: document.getElementById("folder-color").value,
-      sortOrder: state.folders.length
-    }));
+    const colorHex = document.getElementById("folder-color").value;
+    if (existing) {
+      existing.name = name;
+      existing.colorHex = colorHex;
+    } else {
+      state.folders.push(normalizeFolder({
+        id: uid(),
+        name,
+        colorHex,
+        sortOrder: state.folders.length
+      }));
+    }
     save();
     render();
   };
@@ -1020,6 +1251,80 @@ function saveNote() {
   }
   persistDraft(titleEl.value, collectNoteBody(), false);
   go("notes");
+}
+
+function currentNoteShareText() {
+  const note = editorId ? noteById(editorId) : null;
+  const title = document.getElementById("note-title")?.value || note?.title || t("untitled");
+  const body = collectNoteBody();
+  const items = parseChecklist(body).filter((item) => item.text);
+  const textBody = (note?.isChecklist || editorChecklist)
+    ? items.map((item) => `${item.done ? "☑" : "☐"} ${item.text}`).join("\n")
+    : body;
+  return `${title}\n\n${textBody}`.trim();
+}
+
+function shareCurrentNote() {
+  const text = currentNoteShareText();
+  if (navigator.share) {
+    navigator.share({ title: t("app"), text }).catch(() => {});
+    return;
+  }
+  runCatchingCopy(text);
+}
+
+function runCatchingCopy(text) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+}
+
+function addCurrentNoteToCalendar() {
+  const note = editorId ? noteById(editorId) : null;
+  const start = Number(note?.reminderAt);
+  if (!start) return;
+  const end = start + 60 * 60 * 1000;
+  const stamp = (ms) => new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(note?.title || t("untitled"))}&dates=${stamp(start)}/${stamp(end)}&details=${encodeURIComponent(currentNoteShareText())}`;
+  window.open(url, "_blank");
+}
+
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "breez-notes-backup.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function importBackupFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || "{}"));
+      const incoming = migrateState(parsed);
+      const folderIdMap = {};
+      incoming.folders.forEach((folder) => {
+        const created = normalizeFolder({ ...folder, id: uid() });
+        folderIdMap[folder.id] = created.id;
+        state.folders.push(created);
+      });
+      incoming.notes.forEach((note) => {
+        state.notes.unshift(normalizeNote({
+          ...note,
+          id: uid(),
+          folderId: note.folderId ? folderIdMap[note.folderId] || null : null
+        }));
+      });
+      save();
+      render();
+    } catch {
+      render();
+    }
+  };
+  reader.readAsText(file);
 }
 
 function paintSv() {

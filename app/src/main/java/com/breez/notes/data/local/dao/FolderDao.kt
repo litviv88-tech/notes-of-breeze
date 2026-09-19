@@ -15,12 +15,15 @@ interface FolderDao {
         """
         SELECT folders.id, folders.name, folders.colorHex, folders.markType, folders.markFileName,
                folders.sortOrder, folders.createdAt,
-               (SELECT COUNT(*) FROM notes WHERE notes.folderId = folders.id) AS noteCount
+               (SELECT COUNT(*) FROM notes WHERE notes.folderId = folders.id AND notes.isArchived = 0) AS noteCount
         FROM folders
         ORDER BY folders.sortOrder ASC, folders.createdAt ASC
         """
     )
     fun observeAll(): Flow<List<FolderWithCount>>
+
+    @Query("SELECT * FROM folders ORDER BY sortOrder ASC, createdAt ASC")
+    suspend fun getAll(): List<FolderEntity>
 
     @Query("SELECT * FROM folders WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): FolderEntity?

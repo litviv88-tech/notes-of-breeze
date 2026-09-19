@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.DarkMode
@@ -33,21 +35,28 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.breez.notes.R
+import com.breez.notes.data.backup.NotesBackupStore
 import com.breez.notes.domain.model.AppUpdateState
+import com.breez.notes.domain.model.Folder
+import com.breez.notes.domain.model.Note
 import com.breez.notes.domain.model.ThemeMode
 import com.breez.notes.ui.components.BreezTextField
 import com.breez.notes.ui.components.BreezTopBar
@@ -64,7 +73,6 @@ fun NotesScreen(
     onOpenNote: (Long) -> Unit,
     onCreateNote: () -> Unit,
     onCreateTodo: () -> Unit,
-    onOpenFolders: () -> Unit,
     onOpenTheme: () -> Unit,
     onOpenWallpaper: () -> Unit,
     updateState: AppUpdateState = AppUpdateState(),
@@ -78,12 +86,28 @@ fun NotesScreen(
     val themeSettings by themeViewModel.settings.collectAsStateWithLifecycle()
     val markError by foldersViewModel.markError.collectAsStateWithLifecycle()
     var folderDialog by remember { mutableStateOf(false) }
+    var editingFolder by remember { mutableStateOf<Folder?>(null) }
+    var organizeNote by remember { mutableStateOf<Note?>(null) }
+    var organizeAction by remember { mutableStateOf<NoteOrganizeAction?>(null) }
+    val snackbar = remember { SnackbarHostState() }
+    val exportBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(NotesBackupStore.MIME_TYPE)) { uri ->
+        uri?.let(viewModel::exportBackup)
+    }
+    val importBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::importBackup)
+    }
     val imageSearch = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(viewModel::searchByImage)
+    }
+    LaunchedEffect(state.backupMessage) {
+        val message = state.backupMessage ?: return@LaunchedEffect
+        snackbar.showSnackbar(message)
+        viewModel.clearBackupMessage()
     }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Transparent,
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             BreezTopBar(
                 title = stringResource(R.string.notes_title),
@@ -149,7 +173,7 @@ fun NotesScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(
-                    selected = state.selectedFolderId == null,
+                    selected = state.selectedFolderId == null && !state.showingArchive,
                     onClick = { viewModel.selectFolder(null) },
                     label = { Text(stringResource(R.string.folder_all)) }
                 )
@@ -157,6 +181,9 @@ fun NotesScreen(
                     FilterChip(
                         selected = state.selectedFolderId == folder.id,
                         onClick = { viewModel.selectFolder(folder.id) },
+                        modifier = Modifier.pointerInput(folder.id) {
+                            detectTapGestures(onLongPress = { editingFolder = folder })
+                        },
                         leadingIcon = {
                             FolderMarkBadge(
                                 folder = folder,
@@ -167,6 +194,12 @@ fun NotesScreen(
                         label = { Text(folder.name) }
                     )
                 }
+                FilterChip(
+                    selected = state.showingArchive,
+                    onClick = viewModel::showArchive,
+                    leadingIcon = { Icon(Icons.Outlined.Archive, contentDescription = null) },
+                    label = { Text(stringResource(R.string.notes_archive)) }
+                )
             }
             Box(modifier = Modifier.weight(1f)) {
                 if (state.isEmpty) {
@@ -175,7 +208,9 @@ fun NotesScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = stringResource(R.string.notes_empty),
+                            text = stringResource(
+                                if (state.showingArchive) R.string.notes_archive_empty else R.string.notes_empty
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onBackground
@@ -184,11 +219,23 @@ fun NotesScreen(
                 } else {
                     ReorderableNoteList(
                         notes = state.notes,
-                        enabled = state.searchQuery.isBlank(),
+                        enabled = state.searchQuery.isBlank() && !state.showingArchive,
                         onReorder = viewModel::reorderNotes,
                         onOpenNote = onOpenNote,
-                        onDelete = viewModel::deleteNote,
+                        onDelete = viewModel::swipeNote,
                         onTogglePin = viewModel::togglePin,
+                        swipeLabel = stringResource(
+                            if (state.showingArchive) R.string.note_delete else R.string.note_archive
+                        ),
+                        onToggleChecklistItem = viewModel::toggleChecklistItem,
+                        onOrganize = if (state.showingArchive) {
+                            null
+                        } else {
+                            { note, action ->
+                                organizeNote = note
+                                organizeAction = action
+                            }
+                        },
                         contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 8.dp)
                     )
                 }
@@ -242,6 +289,22 @@ fun NotesScreen(
                     label = { Text(stringResource(R.string.theme_mode_dark)) }
                 )
             }
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.backup_title)) },
+                supportingContent = { Text(stringResource(R.string.backup_subtitle)) },
+                colors = ListItemDefaults.colors(containerColor = Transparent),
+                modifier = Modifier.clickable {
+                    exportBackup.launch(NotesBackupStore.FILE_NAME)
+                }
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.backup_import)) },
+                supportingContent = { Text(stringResource(R.string.backup_import_subtitle)) },
+                colors = ListItemDefaults.colors(containerColor = Transparent),
+                modifier = Modifier.clickable {
+                    importBackup.launch(arrayOf(NotesBackupStore.MIME_TYPE, "text/plain", "*/*"))
+                }
+            )
             UpdateSettingsBlock(
                 state = updateState,
                 onCheckUpdate = onCheckUpdate,
@@ -260,6 +323,63 @@ fun NotesScreen(
             foldersViewModel.createFolder(name, colorHex, markType, mediaUri, mimeType) {
                 folderDialog = false
             }
+        }
+    )
+    val folderToEdit = editingFolder
+    FolderEditDialog(
+        visible = folderToEdit != null,
+        existing = folderToEdit,
+        error = markError,
+        onClearError = foldersViewModel::clearMarkError,
+        onDismiss = { editingFolder = null },
+        onSave = { name, colorHex, markType, mediaUri, mimeType ->
+            val current = editingFolder ?: return@FolderEditDialog
+            foldersViewModel.updateFolder(current, name, colorHex, markType, mediaUri, mimeType) {
+                editingFolder = null
+            }
+        }
+    )
+    val currentNote = organizeNote
+    RenameTitleDialog(
+        visible = currentNote != null && organizeAction == NoteOrganizeAction.RENAME,
+        title = stringResource(R.string.note_rename),
+        initial = currentNote?.title.orEmpty(),
+        hint = stringResource(R.string.note_rename_hint),
+        onDismiss = {
+            organizeNote = null
+            organizeAction = null
+        },
+        onConfirm = { title ->
+            currentNote?.let { viewModel.renameNote(it, title) }
+            organizeNote = null
+            organizeAction = null
+        }
+    )
+    FolderTargetDialog(
+        visible = currentNote != null &&
+            (organizeAction == NoteOrganizeAction.COPY || organizeAction == NoteOrganizeAction.MOVE),
+        title = stringResource(
+            if (organizeAction == NoteOrganizeAction.COPY) {
+                R.string.note_copy_to_folder
+            } else {
+                R.string.note_move_to_folder
+            }
+        ),
+        folders = state.folders,
+        selectedId = currentNote?.folderId,
+        onDismiss = {
+            organizeNote = null
+            organizeAction = null
+        },
+        onConfirm = { folderId ->
+            val note = currentNote
+            val action = organizeAction
+            if (note != null) {
+                if (action == NoteOrganizeAction.COPY) viewModel.copyNote(note, folderId)
+                else viewModel.moveNote(note, folderId)
+            }
+            organizeNote = null
+            organizeAction = null
         }
     )
 }

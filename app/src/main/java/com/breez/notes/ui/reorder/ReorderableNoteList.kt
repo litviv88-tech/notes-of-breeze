@@ -17,10 +17,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.breez.notes.R
 import com.breez.notes.domain.model.Note
 import com.breez.notes.ui.notes.NoteCard
+import com.breez.notes.ui.notes.NoteOrganizeAction
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -34,9 +37,13 @@ fun ReorderableNoteList(
     onTogglePin: (Note) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
+    swipeLabel: String? = null,
+    onToggleChecklistItem: ((Note, Int) -> Unit)? = null,
+    onOrganize: ((Note, NoteOrganizeAction) -> Unit)? = null,
     belowCard: (@Composable (Note) -> Unit)? = null
 ) {
     val view = LocalView.current
+    val archiveLabel = swipeLabel ?: stringResource(R.string.note_archive)
     val ordered = remember { mutableStateOf(notes) }
     val dragging = remember { mutableStateOf(false) }
     LaunchedEffect(notes) {
@@ -73,6 +80,13 @@ fun ReorderableNoteList(
                             onDelete = { onDelete(note) },
                             onTogglePin = { onTogglePin(note) },
                             swipeEnabled = !isDragging,
+                            swipeLabel = archiveLabel,
+                            onToggleChecklistItem = onToggleChecklistItem?.let { handler ->
+                                { index -> handler(note, index) }
+                            },
+                            onOrganize = onOrganize?.let { handler ->
+                                { action -> handler(note, action) }
+                            },
                             reorderHandleModifier = Modifier.longPressDraggableHandle(
                                 onDragStarted = {
                                     dragging.value = true
@@ -93,7 +107,14 @@ fun ReorderableNoteList(
                         note = note,
                         onClick = { onOpenNote(note.id) },
                         onDelete = { onDelete(note) },
-                        onTogglePin = { onTogglePin(note) }
+                        onTogglePin = { onTogglePin(note) },
+                        swipeLabel = archiveLabel,
+                        onToggleChecklistItem = onToggleChecklistItem?.let { handler ->
+                            { index -> handler(note, index) }
+                        },
+                        onOrganize = onOrganize?.let { handler ->
+                            { action -> handler(note, action) }
+                        }
                     )
                     belowCard?.invoke(note)
                 }

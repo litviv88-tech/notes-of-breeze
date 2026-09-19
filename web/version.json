@@ -1,7 +1,7 @@
 {
-  "versionCode": 4,
-  "versionName": "1.3.0",
-  "webVersion": 7,
+  "versionCode": 6,
+  "versionName": "1.3.2",
+  "webVersion": 9,
   "apkUrl": "https://litviv88-tech.github.io/notes-of-breeze/downloads/BreezNotes.apk",
-  "notes": "Обновление с 1.1: заметки и папки сохраняются. Главный экран, списки дел и ярлыки папок."
+  "notes": "Можно переименовывать папки и заметки, копировать и перемещать их между папками."
 }

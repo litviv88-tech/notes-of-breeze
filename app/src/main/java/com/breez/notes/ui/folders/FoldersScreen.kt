@@ -19,8 +19,10 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,6 +47,7 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.breez.notes.R
+import com.breez.notes.domain.model.Folder
 import com.breez.notes.domain.model.FolderMarkType
 import com.breez.notes.ui.components.BreezCard
 import com.breez.notes.ui.components.BreezTopBar
@@ -64,6 +67,7 @@ fun FoldersScreen(
     val folders by viewModel.folders.collectAsStateWithLifecycle()
     val markError by viewModel.markError.collectAsStateWithLifecycle()
     var dialogOpen by remember { mutableStateOf(false) }
+    var editingFolder by remember { mutableStateOf<Folder?>(null) }
     val view = LocalView.current
     val ordered = remember { mutableStateOf(folders) }
     val dragging = remember { mutableStateOf(false) }
@@ -164,6 +168,22 @@ fun FoldersScreen(
                             }
                             Box(
                                 modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(6.dp)
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(PureWhite.copy(alpha = 0.78f))
+                            ) {
+                                IconButton(onClick = { editingFolder = folder }) {
+                                    Icon(
+                                        Icons.Outlined.Edit,
+                                        contentDescription = stringResource(R.string.folder_rename),
+                                        tint = Color.Black
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
                                     .align(Alignment.TopEnd)
                                     .padding(6.dp)
                                     .size(36.dp)
@@ -202,6 +222,20 @@ fun FoldersScreen(
         onSave = { name, colorHex, markType, mediaUri, mimeType ->
             viewModel.createFolder(name, colorHex, markType, mediaUri, mimeType) {
                 dialogOpen = false
+            }
+        }
+    )
+    val folderToEdit = editingFolder
+    FolderEditDialog(
+        visible = folderToEdit != null,
+        existing = folderToEdit,
+        error = markError,
+        onClearError = viewModel::clearMarkError,
+        onDismiss = { editingFolder = null },
+        onSave = { name, colorHex, markType, mediaUri, mimeType ->
+            val current = editingFolder ?: return@FolderEditDialog
+            viewModel.updateFolder(current, name, colorHex, markType, mediaUri, mimeType) {
+                editingFolder = null
             }
         }
     )

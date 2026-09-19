@@ -37,4 +37,25 @@ object ChecklistFormat {
     fun preview(body: String, limit: Int = 3): List<ChecklistItem> {
         return parse(body).filter { it.text.isNotBlank() }.take(limit)
     }
+
+    fun toggleVisible(body: String, visibleIndex: Int): String {
+        val items = parse(body).toMutableList()
+        val realIndex = items.withIndex()
+            .filter { it.value.text.isNotBlank() }
+            .getOrNull(visibleIndex)
+            ?.index
+            ?: return body
+        val current = items[realIndex]
+        items[realIndex] = current.copy(done = !current.done)
+        return encode(items)
+    }
+
+    fun asShareText(body: String): String {
+        return parse(body)
+            .filter { it.text.isNotBlank() }
+            .joinToString("\n") { item ->
+                val mark = if (item.done) "☑" else "☐"
+                "$mark ${item.text}"
+            }
+    }
 }

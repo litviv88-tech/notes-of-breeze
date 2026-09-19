@@ -88,6 +88,10 @@ class FoldersViewModel @Inject constructor(
         viewModelScope.launch { noteRepository.moveToFolder(noteId, folderId) }
     }
 
+    fun copyNote(noteId: Long, folderId: Long?) {
+        viewModelScope.launch { noteRepository.copyToFolder(noteId, folderId) }
+    }
+
     fun notesInFolder(folderId: Long): StateFlow<List<Note>> =
         noteRepository.observeByFolder(folderId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

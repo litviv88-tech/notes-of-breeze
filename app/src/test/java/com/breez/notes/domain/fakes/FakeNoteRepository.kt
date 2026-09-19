@@ -13,6 +13,7 @@ class FakeNoteRepository : NoteRepository {
     private var nextId = 1L
 
     override fun observeAll(): Flow<List<Note>> = flow
+    override fun observeArchived(): Flow<List<Note>> = flow
     override fun observeByFolder(folderId: Long): Flow<List<Note>> = flow
     override fun observeWithoutFolder(): Flow<List<Note>> = flow
     override fun observeSearch(query: String): Flow<List<Note>> = flow
@@ -38,7 +39,38 @@ class FakeNoteRepository : NoteRepository {
     }
 
     override suspend fun setPinned(id: Long, pinned: Boolean) = Unit
-    override suspend fun moveToFolder(id: Long, folderId: Long?) = Unit
+    override suspend fun setArchived(id: Long, archived: Boolean) {
+        val current = notes.firstOrNull { it.id == id } ?: return
+        notes.removeAll { it.id == id }
+        notes += current.copy(isArchived = archived, isPinned = if (archived) false else current.isPinned)
+        flow.value = notes.toList()
+    }
+
+    override suspend fun rename(id: Long, title: String) {
+        val note = notes.firstOrNull { it.id == id } ?: return
+        upsert(note.copy(title = title.trim(), updatedAt = System.currentTimeMillis()))
+    }
+
+    override suspend fun moveToFolder(id: Long, folderId: Long?) {
+        val note = notes.firstOrNull { it.id == id } ?: return
+        upsert(note.copy(folderId = folderId, updatedAt = System.currentTimeMillis()))
+    }
+
+    override suspend fun copyToFolder(id: Long, folderId: Long?): Long {
+        val note = notes.firstOrNull { it.id == id } ?: return 0L
+        return upsert(
+            note.copy(
+                id = 0L,
+                folderId = folderId,
+                isPinned = false,
+                isArchived = false,
+                reminderAt = null,
+                locationReminder = false,
+                attachments = emptyList()
+            )
+        )
+    }
+
     override suspend fun reorder(notes: List<Note>) = Unit
     override suspend fun addAttachment(noteId: Long, uri: Uri, mimeType: String?): NoteAttachment {
         error("attachments are not used in unit tests")

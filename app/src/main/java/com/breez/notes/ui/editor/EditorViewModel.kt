@@ -43,6 +43,7 @@ data class EditorUiState(
     val recurrence: Recurrence = Recurrence(),
     val attachments: List<NoteAttachment> = emptyList(),
     val isChecklist: Boolean = false,
+    val isArchived: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val folders: List<Folder> = emptyList(),
     val isNew: Boolean = true,
@@ -130,6 +131,25 @@ class EditorViewModel @Inject constructor(
                 deleteNote(state.toNote(System.currentTimeMillis()))
             }
             onDone()
+        }
+    }
+
+    fun archive(onDone: () -> Unit) {
+        viewModelScope.launch {
+            val id = persist()
+            if (id > 0L) {
+                noteRepository.setArchived(id, !draft.value.isArchived)
+            }
+            onDone()
+        }
+    }
+
+    fun copyToFolder(folderId: Long?) {
+        viewModelScope.launch {
+            val id = persist().takeIf { it > 0L } ?: persistEmpty()
+            if (id > 0L) {
+                noteRepository.copyToFolder(id, folderId)
+            }
         }
     }
 
@@ -222,6 +242,7 @@ class EditorViewModel @Inject constructor(
         recurrence = if (reminderAt == null) Recurrence() else recurrence,
         attachments = attachments,
         isChecklist = isChecklist,
+        isArchived = isArchived,
         createdAt = if (isNew) now else createdAt,
         updatedAt = now
     )
@@ -242,6 +263,7 @@ class EditorViewModel @Inject constructor(
         recurrence = recurrence,
         attachments = attachments,
         isChecklist = isChecklist,
+        isArchived = isArchived,
         createdAt = createdAt,
         isNew = isNew
     )

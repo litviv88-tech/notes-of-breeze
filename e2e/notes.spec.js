@@ -60,6 +60,17 @@ test.describe("Breez Notes e2e", () => {
     await expect(page.locator("article.note").first().locator("h3")).toContainText("E2E заголовок");
   });
 
+  test("список дел создаётся и пункт можно вычеркнуть", async ({ page }) => {
+    await openNotes(page);
+    await page.locator("[data-new-todo]").click();
+    await page.locator("#note-title").fill("E2E список");
+    await page.locator("[data-todo-text]").first().fill("Купить молоко");
+    await page.locator("[data-todo-done]").first().check();
+    await page.locator("#save-note").click();
+    await expect(page.locator("article.note", { hasText: "E2E список" })).toBeVisible();
+    await expect(page.locator("article.note", { hasText: "E2E список" }).locator(".todo-done")).toContainText("Купить молоко");
+  });
+
   test("создание папки", async ({ page }) => {
     await openNotes(page);
     await page.locator("#add-folder").click();
@@ -68,13 +79,45 @@ test.describe("Breez Notes e2e", () => {
     await expect(page.locator(".chip", { hasText: "E2E папка" })).toBeVisible();
   });
 
+  test("переименование, копирование и перемещение заметок", async ({ page }) => {
+    await openNotes(page);
+    await page.locator("#add-folder").click();
+    await page.locator("#folder-name").fill("Рабочая");
+    await page.locator("#create-folder").click();
+    await expect(page.locator(".chip", { hasText: "Рабочая" })).toBeVisible();
+
+    await page.locator("[data-new]").click();
+    await page.locator("#note-title").fill("Черновик");
+    await page.locator("#note-body").fill("текст для переноса");
+    await page.locator("#save-note").click();
+
+    const note = page.locator("article.note", { hasText: "Черновик" });
+    await note.locator("[data-note-menu]").click();
+    await page.locator("#org-rename").click();
+    await page.locator("#rename-value").fill("Готовая");
+    await page.locator("#confirm-rename").click();
+    await expect(page.locator("article.note", { hasText: "Готовая" })).toBeVisible();
+
+    await page.locator("article.note", { hasText: "Готовая" }).locator("[data-note-menu]").click();
+    await page.locator("#org-move").click();
+    await page.locator("[data-pick-folder]", { hasText: "Рабочая" }).click();
+    await page.locator(".chip", { hasText: "Рабочая" }).click();
+    await expect(page.locator("article.note", { hasText: "Готовая" })).toBeVisible();
+
+    await page.locator("article.note", { hasText: "Готовая" }).locator("[data-note-menu]").click();
+    await page.locator("#org-copy").click();
+    await page.locator("[data-pick-folder]").first().click();
+    await page.locator(".chip", { hasText: "Все заметки" }).click();
+    await expect(page.locator("article.note", { hasText: "Готовая" })).toHaveCount(2);
+  });
+
   test("настройки показывают текущую и вышедшую версию", async ({ page }) => {
     await openNotes(page);
     await expect(page.locator("text=Текущая версия")).toBeVisible();
-    await expect(page.locator(".update-version-row").first()).toContainText("1.3.0");
+    await expect(page.locator(".update-version-row").first()).toContainText("1.3.2");
     await expect.poll(async () => {
       return page.locator(".update-version-row").nth(1).innerText();
-    }).toContain("1.3.0");
+    }).toContain("1.3.2");
     await expectWallpaperCoversViewport(page);
   });
 
@@ -84,7 +127,7 @@ test.describe("Breez Notes e2e", () => {
     await expect(page.locator("text=Режим темы")).toBeVisible();
     await page.locator("[data-mode=DARK]").click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await page.locator("[data-go=settings]").click();
+    await page.locator("[data-go=notes]").click();
     await page.locator("[data-go=wallpaper]").click();
     await expect(page.locator("[data-wtype=BUILTIN]")).toBeVisible();
     await page.locator("[data-wall=lavender_dream]").click();

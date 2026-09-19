@@ -25,6 +25,9 @@ class FolderRepositoryImpl @Inject constructor(
     override fun observeAll(): Flow<List<Folder>> =
         folderDao.observeAll().map { list -> list.map { it.toDomain() } }
 
+    override suspend fun getAll(): List<Folder> =
+        folderDao.getAll().map { it.toDomain() }
+
     override suspend fun getById(id: Long): Folder? = folderDao.getById(id)?.toDomain()
 
     override suspend fun upsert(folder: Folder): Long {

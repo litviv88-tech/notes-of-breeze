@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface FolderRepository {
     fun observeAll(): Flow<List<Folder>>
+    suspend fun getAll(): List<Folder>
     suspend fun getById(id: Long): Folder?
     suspend fun upsert(folder: Folder): Long
     suspend fun saveWithMark(

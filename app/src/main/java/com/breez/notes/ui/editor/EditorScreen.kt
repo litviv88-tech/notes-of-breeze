@@ -1,8 +1,10 @@
 package com.breez.notes.ui.editor
 
 import android.Manifest
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.CalendarContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -66,8 +69,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.breez.notes.R
-import com.breez.notes.domain.model.Folder
 import com.breez.notes.ui.components.BreezButton
 import com.breez.notes.ui.components.BreezTextButton
 import com.breez.notes.ui.components.BreezTextField
@@ -75,6 +76,8 @@ import com.breez.notes.ui.components.BreezTopBar
 import com.breez.notes.ui.components.ColorPickerDialog
 import com.breez.notes.ui.folders.FolderMarkBadge
 import com.breez.notes.ui.media.VideoTrimDialog
+import com.breez.notes.ui.notes.FolderTargetDialog
+import com.breez.notes.ui.notes.NoteOrganizeAction
 import com.breez.notes.ui.theme.Transparent
 import com.breez.notes.ui.theme.parseHexColor
 import com.breez.notes.ui.theme.toHex
@@ -88,6 +91,7 @@ fun EditorScreen(
     viewModel: EditorViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
@@ -97,6 +101,7 @@ fun EditorScreen(
     var timePicker by remember { mutableStateOf(false) }
     var pendingDate by remember { mutableStateOf<Long?>(null) }
     var deleteConfirm by remember { mutableStateOf(false) }
+    var organizeAction by remember { mutableStateOf<NoteOrganizeAction?>(null) }
     var pendingLocationAction by remember { mutableStateOf<LocationAction?>(null) }
     var trimUri by remember { mutableStateOf<Uri?>(null) }
     val sheetState = rememberModalBottomSheetState()
@@ -187,6 +192,20 @@ fun EditorScreen(
                             }
                         )
                         DropdownMenuItem(
+                            text = { Text(stringResource(R.string.note_copy_to_folder)) },
+                            onClick = {
+                                menuOpen = false
+                                organizeAction = NoteOrganizeAction.COPY
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.note_move_to_folder)) },
+                            onClick = {
+                                menuOpen = false
+                                organizeAction = NoteOrganizeAction.MOVE
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text(stringResource(R.string.editor_color)) },
                             onClick = {
                                 menuOpen = false
@@ -210,6 +229,34 @@ fun EditorScreen(
                             onClick = {
                                 menuOpen = false
                                 viewModel.onPinnedChange(!state.isPinned)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.editor_share)) },
+                            onClick = {
+                                menuOpen = false
+                                shareNote(context, state)
+                            }
+                        )
+                        if (state.reminderAt != null) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.editor_calendar)) },
+                                onClick = {
+                                    menuOpen = false
+                                    addNoteToCalendar(context, state)
+                                }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (state.isArchived) stringResource(R.string.note_unarchive)
+                                    else stringResource(R.string.note_archive)
+                                )
+                            },
+                            onClick = {
+                                menuOpen = false
+                                viewModel.archive { onBack() }
                             }
                         )
                         DropdownMenuItem(
@@ -349,6 +396,10 @@ fun EditorScreen(
                         recurrence = state.recurrence,
                         onChange = viewModel::onRecurrenceChange
                     )
+                    BreezTextButton(
+                        text = stringResource(R.string.editor_calendar),
+                        onClick = { addNoteToCalendar(context, state) }
+                    )
                 }
                 Spacer(Modifier.height(24.dp))
             }
@@ -442,6 +493,28 @@ fun EditorScreen(
             title = { Text(stringResource(R.string.editor_delete_confirm)) }
         )
     }
+
+    FolderTargetDialog(
+        visible = organizeAction == NoteOrganizeAction.COPY || organizeAction == NoteOrganizeAction.MOVE,
+        title = stringResource(
+            if (organizeAction == NoteOrganizeAction.COPY) {
+                R.string.note_copy_to_folder
+            } else {
+                R.string.note_move_to_folder
+            }
+        ),
+        folders = state.folders,
+        selectedId = state.folderId,
+        onDismiss = { organizeAction = null },
+        onConfirm = { folderId ->
+            if (organizeAction == NoteOrganizeAction.COPY) {
+                viewModel.copyToFolder(folderId)
+            } else {
+                viewModel.onFolderChange(folderId)
+            }
+            organizeAction = null
+        }
+    )
 }
 
 private enum class LocationAction { Current, Nearby }
@@ -473,6 +546,12 @@ private fun ChecklistEditor(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (item.done) 0.5f else 1f)
                     )
                 )
+                if (items.size > 1) {
+                    BreezTextButton(
+                        text = "×",
+                        onClick = { onChange(items.toMutableList().also { it.removeAt(index) }) }
+                    )
+                }
             }
         }
         BreezTextButton(
@@ -509,4 +588,46 @@ private fun FolderOption(
         }
         Text(text = name, style = MaterialTheme.typography.bodyLarge)
     }
+}
+
+private fun shareNote(context: android.content.Context, state: EditorUiState) {
+    val body = if (state.isChecklist) ChecklistFormat.asShareText(state.body) else state.body
+    val text = buildString {
+        append(state.title.ifBlank { context.getString(R.string.note_untitled) })
+        if (body.isNotBlank()) {
+            append("\n\n")
+            append(body)
+        }
+        if (state.meetingPlace.isNotBlank()) {
+            append("\n\n")
+            append(state.meetingPlace)
+        }
+    }
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, state.title)
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.editor_share)))
+}
+
+private fun addNoteToCalendar(context: android.content.Context, state: EditorUiState) {
+    val start = state.reminderAt ?: return
+    val intent = Intent(Intent.ACTION_INSERT).apply {
+        data = CalendarContract.Events.CONTENT_URI
+        putExtra(
+            CalendarContract.Events.TITLE,
+            state.title.ifBlank { context.getString(R.string.note_untitled) }
+        )
+        putExtra(
+            CalendarContract.Events.DESCRIPTION,
+            if (state.isChecklist) ChecklistFormat.asShareText(state.body) else state.body
+        )
+        putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, start)
+        putExtra(CalendarContract.EXTRA_EVENT_END_TIME, start + 60 * 60 * 1000)
+        if (state.meetingPlace.isNotBlank()) {
+            putExtra(CalendarContract.Events.EVENT_LOCATION, state.meetingPlace)
+        }
+    }
+    runCatching { context.startActivity(intent) }
 }
