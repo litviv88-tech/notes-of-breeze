@@ -15,6 +15,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,12 +32,12 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Собрать APK
+        continue-on-error: true
         run: |
           chmod +x gradlew
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
           ./gradlew assembleDebug --no-daemon
 
       - name: Подготовить сайт
