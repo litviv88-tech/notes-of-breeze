@@ -23,9 +23,9 @@ class AttachmentStore @Inject constructor(
             ?.takeIf { it.isNotBlank() }
             ?: if (mimeType.startsWith("video")) "mp4" else "jpg"
         val dest = File(dir(noteId), "${UUID.randomUUID()}.$extension")
-        context.contentResolver.openInputStream(uri)?.use { input ->
+        context.openUriInput(uri).use { input ->
             dest.outputStream().use { output -> input.copyTo(output) }
-        } ?: error("Не удалось прочитать файл")
+        }
         return dest
     }
 

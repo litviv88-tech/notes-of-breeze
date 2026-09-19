@@ -43,6 +43,7 @@ object DatabaseModule {
                 )
             }
         }
+        // fallbackToDestructiveMigration запрещён: неизвестная схема не должна стирать заметки.
         return Room.databaseBuilder(context, BreezDatabase::class.java, "breez_notes.db")
             .addCallback(callback)
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)

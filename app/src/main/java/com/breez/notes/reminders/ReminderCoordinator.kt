@@ -7,7 +7,8 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.breez.notes.R
 import com.breez.notes.domain.model.Note
-import com.breez.notes.ui.editor.ReminderWorker
+import com.breez.notes.domain.repository.ReminderScheduler
+import com.breez.notes.platform.reminder.ReminderWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -18,8 +19,9 @@ class ReminderCoordinator @Inject constructor(
     @ApplicationContext private val context: Context,
     private val workManager: WorkManager,
     private val geofenceManager: GeofenceManager
-) {
-    fun schedule(note: Note, replaceExisting: Boolean = true) {
+) : ReminderScheduler {
+
+    override fun schedule(note: Note, replaceExisting: Boolean) {
         val tag = tag(note.id)
         if (replaceExisting) {
             workManager.cancelAllWorkByTag(tag)
@@ -51,7 +53,7 @@ class ReminderCoordinator @Inject constructor(
         geofenceManager.register(note)
     }
 
-    fun cancel(noteId: Long) {
+    override fun cancel(noteId: Long) {
         workManager.cancelAllWorkByTag(tag(noteId))
         geofenceManager.remove(noteId)
     }

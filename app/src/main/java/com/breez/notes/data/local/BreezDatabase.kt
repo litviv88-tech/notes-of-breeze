@@ -19,7 +19,7 @@ import com.breez.notes.data.local.entity.WidgetConfigEntity
         AttachmentEntity::class
     ],
     version = 5,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class BreezDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="updates" path="updates/" />
+    <cache-path name="clips" path="clips/" />
     <files-path name="attachments" path="attachments/" />
     <files-path name="folder_marks" path="folder_marks/" />
+    <files-path name="wallpapers" path="wallpapers/" />
 </paths>

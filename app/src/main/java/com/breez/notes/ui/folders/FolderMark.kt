@@ -5,17 +5,17 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.widget.VideoView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,20 +28,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import com.breez.notes.R
+import com.breez.notes.data.files.FolderMarkStore
 import com.breez.notes.domain.model.Folder
 import com.breez.notes.domain.model.FolderMarkType
+import com.breez.notes.ui.media.LoopingTextureVideo
+import com.breez.notes.ui.theme.PureWhite
 import com.breez.notes.ui.theme.parseHexColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,20 +59,37 @@ fun Folder.markFile(context: Context): File? {
     return file.takeIf { it.exists() }
 }
 
+fun Folder.markThumb(context: Context): File? {
+    val file = File(context.filesDir, "folder_marks/$id/${FolderMarkStore.THUMB_NAME}")
+    return file.takeIf { it.exists() }
+}
+
 @Composable
 fun FolderMarkBadge(
     folder: Folder,
     modifier: Modifier = Modifier,
     size: Dp = 28.dp
 ) {
+    val ring = size >= 22.dp
     FolderMarkVisual(
         markType = folder.markType,
         colorHex = folder.colorHex,
         file = folder.markFile(LocalContext.current),
+        thumb = folder.markThumb(LocalContext.current),
         previewUri = null,
-        modifier = modifier.size(size),
-        circle = true,
-        showPlayIcon = folder.markType == FolderMarkType.VIDEO
+        modifier = modifier
+            .size(size)
+            .then(
+                if (ring) {
+                    Modifier
+                        .shadow(2.dp, CircleShape)
+                        .border(1.dp, PureWhite.copy(alpha = 0.55f), CircleShape)
+                } else {
+                    Modifier
+                }
+            ),
+        shape = CircleShape,
+        showPlayIcon = folder.markType == FolderMarkType.VIDEO && size >= 20.dp
     )
 }
 
@@ -74,17 +97,18 @@ fun FolderMarkBadge(
 fun FolderMarkCover(
     folder: Folder,
     modifier: Modifier = Modifier,
-    playVideo: Boolean = false
+    playVideo: Boolean = false,
+    shape: Shape = RectangleShape
 ) {
     val context = LocalContext.current
-    val file = folder.markFile(context)
     FolderMarkVisual(
         markType = folder.markType,
         colorHex = folder.colorHex,
-        file = file,
+        file = folder.markFile(context),
+        thumb = folder.markThumb(context),
         previewUri = null,
-        modifier = modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-        circle = false,
+        modifier = modifier,
+        shape = shape,
         showPlayIcon = folder.markType == FolderMarkType.VIDEO && !playVideo,
         playVideo = playVideo && folder.markType == FolderMarkType.VIDEO
     )
@@ -97,20 +121,27 @@ fun FolderMarkPreview(
     previewUri: Uri?,
     existing: Folder?,
     modifier: Modifier = Modifier,
-    size: Dp = 72.dp
+    size: Dp = 96.dp
 ) {
     val context = LocalContext.current
     val existingFile = existing
         ?.takeIf { it.markType == markType && previewUri == null }
         ?.markFile(context)
+    val existingThumb = existing
+        ?.takeIf { it.markType == markType && previewUri == null }
+        ?.markThumb(context)
     FolderMarkVisual(
         markType = markType,
         colorHex = colorHex,
         file = existingFile,
+        thumb = existingThumb,
         previewUri = previewUri,
-        modifier = modifier.size(size),
-        circle = true,
-        showPlayIcon = markType == FolderMarkType.VIDEO
+        modifier = modifier
+            .size(size)
+            .shadow(6.dp, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        showPlayIcon = false,
+        playVideo = markType == FolderMarkType.VIDEO && (previewUri != null || existingFile != null)
     )
 }
 
@@ -119,31 +150,42 @@ private fun FolderMarkVisual(
     markType: FolderMarkType,
     colorHex: String,
     file: File?,
+    thumb: File?,
     previewUri: Uri?,
     modifier: Modifier,
-    circle: Boolean,
+    shape: Shape,
     showPlayIcon: Boolean,
     playVideo: Boolean = false
 ) {
-    val shape = if (circle) CircleShape else RoundedCornerShape(0.dp)
+    val color = parseHexColor(colorHex)
     Box(
         modifier = modifier
             .clip(shape)
             .background(
                 if (markType == FolderMarkType.COLOR) {
-                    parseHexColor(colorHex)
+                    Brush.linearGradient(listOf(color, color.darken()))
                 } else {
-                    MaterialTheme.colorScheme.surfaceVariant
+                    Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
                 }
             ),
         contentAlignment = Alignment.Center
     ) {
         when {
-            playVideo && file != null -> LoopingMutedVideo(file = file, modifier = Modifier.fillMaxSize())
+            playVideo && file != null -> {
+                LoopingTextureVideo(file = file, modifier = Modifier.fillMaxSize())
+            }
+            playVideo && previewUri != null -> {
+                LoopingTextureVideo(uri = previewUri, modifier = Modifier.fillMaxSize())
+            }
             markType == FolderMarkType.PHOTO && previewUri != null -> {
                 AsyncImage(
                     model = previewUri,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.folder_mark_photo),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
@@ -151,23 +193,25 @@ private fun FolderMarkVisual(
             markType == FolderMarkType.PHOTO && file != null -> {
                 AsyncImage(
                     model = file,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.folder_mark_photo),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
             }
-            markType == FolderMarkType.VIDEO && (previewUri != null || file != null) -> {
+            markType == FolderMarkType.VIDEO && (previewUri != null || file != null || thumb != null) -> {
                 VideoStill(
-                    source = previewUri ?: file!!,
+                    source = previewUri ?: file ?: thumb!!,
+                    thumb = thumb,
                     modifier = Modifier.fillMaxSize()
                 )
             }
             markType == FolderMarkType.COLOR -> {
-                if (!circle) {
+                if (shape != CircleShape) {
                     Icon(
                         imageVector = Icons.Outlined.Folder,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.92f)
+                        modifier = Modifier.size(36.dp),
+                        tint = PureWhite.copy(alpha = 0.92f)
                     )
                 }
             }
@@ -178,47 +222,39 @@ private fun FolderMarkVisual(
             )
         }
         if (showPlayIcon) {
-            Icon(
-                imageVector = Icons.Outlined.PlayCircle,
-                contentDescription = stringResource(R.string.attachments_play),
-                tint = MaterialTheme.colorScheme.onSurface
-            )
+            Box(
+                modifier = Modifier
+                    .size(if (shape == CircleShape) 18.dp else 36.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = stringResource(R.string.attachments_play),
+                    modifier = Modifier.size(if (shape == CircleShape) 12.dp else 22.dp),
+                    tint = PureWhite
+                )
+            }
         }
     }
 }
 
 @Composable
-fun LoopingMutedVideo(
-    file: File,
-    modifier: Modifier = Modifier
-) {
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            VideoView(context).apply {
-                setOnPreparedListener { player ->
-                    player.isLooping = true
-                    player.setVolume(0f, 0f)
-                    start()
-                }
-                setOnErrorListener { _, _, _ -> true }
-                setVideoPath(file.absolutePath)
-            }
-        },
-        update = { view ->
-            if (view.tag != file.absolutePath) {
-                view.tag = file.absolutePath
-                view.setVideoPath(file.absolutePath)
-            }
-        }
-    )
-}
-
-@Composable
 private fun VideoStill(
     source: Any,
+    thumb: File?,
     modifier: Modifier = Modifier
 ) {
+    if (thumb != null) {
+        AsyncImage(
+            model = thumb,
+            contentDescription = stringResource(R.string.folder_mark_video),
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+        return
+    }
     val context = LocalContext.current
     var bitmap by remember(source) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(source) {
@@ -227,10 +263,17 @@ private fun VideoStill(
                 val retriever = MediaMetadataRetriever()
                 when (source) {
                     is File -> retriever.setDataSource(source.absolutePath)
-                    is Uri -> retriever.setDataSource(context, source)
+                    is Uri -> if (source.scheme == "file") {
+                        retriever.setDataSource(source.path)
+                    } else {
+                        retriever.setDataSource(context, source)
+                    }
                     else -> return@runCatching null
                 }
-                val frame: Bitmap? = retriever.getFrameAtTime(0)
+                val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                val timeUs = (duration.coerceAtLeast(400L) / 8L).coerceIn(200L, 1_200L) * 1_000L
+                val frame: Bitmap? = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                    ?: retriever.frameAtTime
                 retriever.release()
                 frame?.asImageBitmap()
             }.getOrNull()
@@ -239,7 +282,7 @@ private fun VideoStill(
     if (bitmap != null) {
         Image(
             bitmap = bitmap!!,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.folder_mark_video),
             modifier = modifier,
             contentScale = ContentScale.Crop
         )
@@ -248,7 +291,7 @@ private fun VideoStill(
             modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Outlined.Videocam, contentDescription = null)
+            Icon(Icons.Outlined.Videocam, contentDescription = null, tint = PureWhite)
         }
     }
 }
@@ -266,3 +309,9 @@ fun openFolderMark(context: Context, folder: Folder) {
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     runCatching { context.startActivity(intent) }
 }
+
+private fun Color.darken(factor: Float = 0.58f): Color = copy(
+    red = red * factor,
+    green = green * factor,
+    blue = blue * factor
+)

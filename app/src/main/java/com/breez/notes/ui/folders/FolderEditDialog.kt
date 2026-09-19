@@ -1,6 +1,5 @@
 package com.breez.notes.ui.folders
 
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -12,10 +11,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,7 +28,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,11 +41,9 @@ import com.breez.notes.ui.components.BreezButton
 import com.breez.notes.ui.components.BreezTextButton
 import com.breez.notes.ui.components.BreezTextField
 import com.breez.notes.ui.components.ColorPickerDialog
+import com.breez.notes.ui.media.VideoTrimDialog
 import com.breez.notes.ui.theme.parseHexColor
 import com.breez.notes.ui.theme.toHex
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun FolderEditDialog(
@@ -59,7 +61,6 @@ fun FolderEditDialog(
     ) -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var colorHex by remember { mutableStateOf(Folder.DEFAULT_FOLDER_COLOR) }
     var markType by remember { mutableStateOf(FolderMarkType.COLOR) }
@@ -67,8 +68,8 @@ fun FolderEditDialog(
     var mimeType by remember { mutableStateOf<String?>(null) }
     var localError by remember { mutableStateOf<String?>(null) }
     var colorPicker by remember { mutableStateOf(false) }
+    var trimUri by remember { mutableStateOf<Uri?>(null) }
     val shownError = error ?: localError
-    val videoTooLong = stringResource(R.string.folder_video_too_long)
 
     LaunchedEffect(visible, existing?.id) {
         if (!visible) return@LaunchedEffect
@@ -79,6 +80,7 @@ fun FolderEditDialog(
         mimeType = null
         localError = null
         colorPicker = false
+        trimUri = null
         onClearError()
     }
 
@@ -92,18 +94,7 @@ fun FolderEditDialog(
     }
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val duration = withContext(Dispatchers.IO) { videoDurationMs(context, uri) }
-            if (duration > Folder.MAX_VIDEO_DURATION_MS) {
-                localError = videoTooLong
-            } else {
-                markType = FolderMarkType.VIDEO
-                previewUri = uri
-                mimeType = context.contentResolver.getType(uri) ?: "video/*"
-                localError = null
-                onClearError()
-            }
-        }
+        trimUri = uri
     }
 
     if (!visible) return
@@ -145,6 +136,12 @@ fun FolderEditDialog(
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(stringResource(R.string.folder_mark), style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.folder_mark_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
                 Spacer(Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -158,6 +155,9 @@ fun FolderEditDialog(
                             mimeType = null
                             localError = null
                         },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.Palette, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
                         label = { Text(stringResource(R.string.folder_color)) }
                     )
                     FilterChip(
@@ -168,6 +168,14 @@ fun FolderEditDialog(
                                 previewUri = null
                                 mimeType = null
                             }
+                            if (previewUri == null && existing?.markType != FolderMarkType.PHOTO) {
+                                photoPicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                         },
                         label = { Text(stringResource(R.string.folder_mark_photo)) }
                     )
@@ -179,17 +187,25 @@ fun FolderEditDialog(
                                 previewUri = null
                                 mimeType = null
                             }
+                            if (previewUri == null && existing?.markType != FolderMarkType.VIDEO) {
+                                videoPicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+                                )
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.Videocam, contentDescription = null, modifier = Modifier.size(18.dp))
                         },
                         label = { Text(stringResource(R.string.folder_mark_video)) }
                     )
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
                 FolderMarkPreview(
                     markType = markType,
                     colorHex = colorHex,
                     previewUri = previewUri,
                     existing = existing,
-                    modifier = Modifier.align(Alignment.Start)
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
                 Spacer(Modifier.height(8.dp))
                 when (markType) {
@@ -201,7 +217,13 @@ fun FolderEditDialog(
                     }
                     FolderMarkType.PHOTO -> {
                         BreezTextButton(
-                            text = stringResource(R.string.folder_pick_photo),
+                            text = stringResource(
+                                if (previewUri != null || existing?.markType == FolderMarkType.PHOTO) {
+                                    R.string.folder_replace_photo
+                                } else {
+                                    R.string.folder_pick_photo
+                                }
+                            ),
                             onClick = {
                                 photoPicker.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -211,7 +233,13 @@ fun FolderEditDialog(
                     }
                     FolderMarkType.VIDEO -> {
                         BreezTextButton(
-                            text = stringResource(R.string.folder_pick_video),
+                            text = stringResource(
+                                if (previewUri != null || existing?.markType == FolderMarkType.VIDEO) {
+                                    R.string.folder_replace_video
+                                } else {
+                                    R.string.folder_pick_video
+                                }
+                            ),
                             onClick = {
                                 videoPicker.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
@@ -244,16 +272,21 @@ fun FolderEditDialog(
             onDismiss = { colorPicker = false }
         )
     }
-}
-
-private fun videoDurationMs(context: android.content.Context, uri: Uri): Long {
-    val retriever = MediaMetadataRetriever()
-    return try {
-        retriever.setDataSource(context, uri)
-        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
-    } catch (_: Exception) {
-        0L
-    } finally {
-        runCatching { retriever.release() }
+    val pendingTrim = trimUri
+    if (pendingTrim != null) {
+        VideoTrimDialog(
+            source = pendingTrim,
+            maxDurationMs = Folder.MAX_VIDEO_DURATION_MS,
+            hint = stringResource(R.string.video_trim_hint_folder),
+            onConfirm = { file ->
+                markType = FolderMarkType.VIDEO
+                previewUri = Uri.fromFile(file)
+                mimeType = "video/mp4"
+                localError = null
+                onClearError()
+                trimUri = null
+            },
+            onDismiss = { trimUri = null }
+        )
     }
 }

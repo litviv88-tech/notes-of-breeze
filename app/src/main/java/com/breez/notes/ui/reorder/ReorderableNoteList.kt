@@ -14,7 +14,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalView
@@ -38,19 +37,20 @@ fun ReorderableNoteList(
     belowCard: (@Composable (Note) -> Unit)? = null
 ) {
     val view = LocalView.current
-    var ordered by remember { mutableStateOf(notes) }
-    var dragging by remember { mutableStateOf(false) }
+    val ordered = remember { mutableStateOf(notes) }
+    val dragging = remember { mutableStateOf(false) }
     LaunchedEffect(notes) {
-        if (!dragging) ordered = notes
+        if (!dragging.value) ordered.value = notes
     }
 
     val listState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
-        val fromIndex = ordered.indexOfFirst { it.id == from.key }
-        val toIndex = ordered.indexOfFirst { it.id == to.key }
+        val fromIndex = ordered.value.indexOfFirst { it.id == from.key }
+        val toIndex = ordered.value.indexOfFirst { it.id == to.key }
         if (fromIndex < 0 || toIndex < 0) return@rememberReorderableLazyListState
-        ordered = ordered.moved(fromIndex, toIndex)
+        ordered.value = ordered.value.moved(fromIndex, toIndex)
     }
+    val visibleNotes = ordered.value
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
@@ -58,7 +58,7 @@ fun ReorderableNoteList(
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(ordered, key = { it.id }) { note ->
+        items(visibleNotes, key = { it.id }) { note ->
             if (enabled) {
                 ReorderableItem(reorderableState, key = note.id) { isDragging ->
                     val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "noteDrag")
@@ -75,12 +75,12 @@ fun ReorderableNoteList(
                             swipeEnabled = !isDragging,
                             reorderHandleModifier = Modifier.longPressDraggableHandle(
                                 onDragStarted = {
-                                    dragging = true
+                                    dragging.value = true
                                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                 },
                                 onDragStopped = {
-                                    dragging = false
-                                    onReorder(ordered)
+                                    dragging.value = false
+                                    onReorder(ordered.value)
                                 }
                             )
                         )

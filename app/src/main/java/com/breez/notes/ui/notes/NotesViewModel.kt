@@ -9,6 +9,7 @@ import com.breez.notes.domain.model.Folder
 import com.breez.notes.domain.model.Note
 import com.breez.notes.domain.repository.FolderRepository
 import com.breez.notes.domain.repository.NoteRepository
+import com.breez.notes.domain.usecase.DeleteNote
 import com.breez.notes.ocr.ImageTextRecognizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -35,6 +36,7 @@ data class NotesUiState(
 @HiltViewModel
 class NotesViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
+    private val deleteNote: DeleteNote,
     folderRepository: FolderRepository,
     private val imageTextRecognizer: ImageTextRecognizer,
     @ApplicationContext private val context: Context
@@ -88,7 +90,7 @@ class NotesViewModel @Inject constructor(
     }
 
     fun deleteNote(note: Note) {
-        viewModelScope.launch { noteRepository.delete(note) }
+        viewModelScope.launch { deleteNote(note) }
     }
 
     fun togglePin(note: Note) {

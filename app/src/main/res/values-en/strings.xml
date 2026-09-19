@@ -41,12 +41,15 @@
     <string name="folder_name_hint">Folder name</string>
     <string name="folder_color">Color</string>
     <string name="folder_mark">Label</string>
+    <string name="folder_mark_hint">Mark a folder with a color, photo, or short video</string>
     <string name="folder_mark_photo">Photo</string>
     <string name="folder_mark_video">Video</string>
     <string name="folder_pick_photo">Choose photo</string>
     <string name="folder_pick_video">Choose video</string>
-    <string name="folder_video_hint">Video must be 10 seconds or shorter</string>
-    <string name="folder_video_too_long">This video is longer than 10 seconds. Pick a shorter clip.</string>
+    <string name="folder_replace_photo">Replace photo</string>
+    <string name="folder_replace_video">Replace video</string>
+    <string name="folder_video_hint">The clip is trimmed in the app to 10 seconds and loops on the label</string>
+    <string name="folder_video_too_long">Pick a fragment that is 10 seconds or shorter</string>
     <string name="folder_mark_failed">Could not save the folder label</string>
     <string name="folder_create">Create</string>
     <string name="folder_save">Save</string>
@@ -62,13 +65,13 @@
     <string name="settings_appearance">Appearance</string>
     <string name="settings_appearance_subtitle">Theme, palette, Material You</string>
     <string name="settings_wallpaper">Wallpaper</string>
-    <string name="settings_wallpaper_subtitle">Gradients, photo and solid color</string>
+    <string name="settings_wallpaper_subtitle">Gradients, photo, live wallpaper and solid color</string>
     <string name="settings_web">Web notes</string>
     <string name="settings_web_subtitle">JS version that saves into the app and widget</string>
     <string name="settings_about">About</string>
-    <string name="settings_about_subtitle">Breez Notes 1.1</string>
+    <string name="settings_about_subtitle">Breez Notes 1.2.0</string>
     <string name="about_title">About</string>
-    <string name="about_version">Version 1.1</string>
+    <string name="about_version">Version 1.2.0</string>
     <string name="update_title">Update</string>
     <string name="update_current">Current version: %1$s</string>
     <string name="update_released">Released version: %1$s</string>
@@ -119,8 +122,11 @@
     <string name="wallpaper_title">Wallpaper</string>
     <string name="wallpaper_tab_builtin">Built-in</string>
     <string name="wallpaper_tab_gallery">Gallery</string>
+    <string name="wallpaper_tab_live">Live</string>
     <string name="wallpaper_tab_color">Color</string>
     <string name="wallpaper_pick_photo">Choose photo</string>
+    <string name="wallpaper_pick_video">Choose video</string>
+    <string name="wallpaper_live_hint">Live wallpaper for the app home screen: a clip up to 30 seconds. You can trim it in the app.</string>
     <string name="wallpaper_dim">Dimming</string>
     <string name="wallpaper_blur">Blur</string>
     <string name="wallpaper_apply">Apply</string>
@@ -231,4 +237,13 @@
     <string name="search_image_progress">Reading text from the image…</string>
     <string name="search_image_empty">No text found on the image</string>
     <string name="search_image_found">Searching: %1$s</string>
+
+    <string name="video_trim_title">Trim video</string>
+    <string name="video_trim_confirm">Trim</string>
+    <string name="video_trim_busy">Trimming clip…</string>
+    <string name="video_trim_failed">Could not trim this video. Try another file.</string>
+    <string name="video_trim_range">%1$s – %2$s (%3$s)</string>
+    <string name="video_trim_hint_folder">Choose a fragment of 10 seconds or less — it becomes the folder’s live label</string>
+    <string name="video_trim_hint_wallpaper">Choose a fragment of 30 seconds or less</string>
+    <string name="video_trim_hint_note">Trim the clip or keep it in full</string>
 </resources>

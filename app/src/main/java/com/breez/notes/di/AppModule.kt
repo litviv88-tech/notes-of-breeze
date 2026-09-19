@@ -5,6 +5,7 @@ import androidx.work.WorkManager
 import com.breez.notes.domain.repository.FolderRepository
 import com.breez.notes.domain.repository.NoteRepository
 import com.breez.notes.domain.repository.WidgetRepository
+import com.breez.notes.domain.usecase.DeleteNote
 import com.breez.notes.reminders.ReminderCoordinator
 import dagger.Module
 import dagger.Provides
@@ -30,6 +31,7 @@ interface WidgetEntryPoint {
     fun widgetRepository(): WidgetRepository
     fun noteRepository(): NoteRepository
     fun folderRepository(): FolderRepository
+    fun deleteNote(): DeleteNote
 }
 
 @EntryPoint

@@ -13,7 +13,7 @@ interface NoteRepository {
     suspend fun getAll(): List<Note>
     suspend fun getByFolder(folderId: Long): List<Note>
     suspend fun getById(id: Long): Note?
-    suspend fun upsert(note: Note, syncReminders: Boolean = true): Long
+    suspend fun upsert(note: Note): Long
     suspend fun delete(note: Note)
     suspend fun setPinned(id: Long, pinned: Boolean)
     suspend fun moveToFolder(id: Long, folderId: Long?)

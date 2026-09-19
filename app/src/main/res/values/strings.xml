@@ -40,14 +40,17 @@
     <string name="folder_add">Новая папка</string>
     <string name="folder_name_hint">Название папки</string>
     <string name="folder_color">Цвет</string>
-    <string name="folder_mark">Метка</string>
+    <string name="folder_mark">Ярлык</string>
+    <string name="folder_mark_hint">Пометьте папку цветом, фото или коротким видео</string>
     <string name="folder_mark_photo">Фото</string>
     <string name="folder_mark_video">Видео</string>
     <string name="folder_pick_photo">Выбрать фото</string>
     <string name="folder_pick_video">Выбрать видео</string>
-    <string name="folder_video_hint">Видео не длиннее 10 секунд</string>
-    <string name="folder_video_too_long">Видео длиннее 10 секунд. Выберите короткий ролик.</string>
-    <string name="folder_mark_failed">Не удалось сохранить метку папки</string>
+    <string name="folder_replace_photo">Заменить фото</string>
+    <string name="folder_replace_video">Заменить видео</string>
+    <string name="folder_video_hint">Видео обрезается в приложении до 10 секунд и зацикливается на ярлыке</string>
+    <string name="folder_video_too_long">Выберите фрагмент не длиннее 10 секунд</string>
+    <string name="folder_mark_failed">Не удалось сохранить ярлык папки</string>
     <string name="folder_create">Создать</string>
     <string name="folder_save">Сохранить</string>
     <string name="folder_delete">Удалить папку</string>
@@ -62,13 +65,13 @@
     <string name="settings_appearance">Внешний вид</string>
     <string name="settings_appearance_subtitle">Тема, палитра, Material You</string>
     <string name="settings_wallpaper">Обои</string>
-    <string name="settings_wallpaper_subtitle">Градиенты, фото и цвет фона</string>
+    <string name="settings_wallpaper_subtitle">Градиенты, фото, живые обои и цвет</string>
     <string name="settings_web">Веб-заметки</string>
     <string name="settings_web_subtitle">JS-версия с сохранением в приложение и виджет</string>
     <string name="settings_about">О приложении</string>
-    <string name="settings_about_subtitle">Breez Notes 1.1</string>
+    <string name="settings_about_subtitle">Breez Notes 1.2.0</string>
     <string name="about_title">О приложении</string>
-    <string name="about_version">Версия 1.1</string>
+    <string name="about_version">Версия 1.2.0</string>
     <string name="update_title">Обновление</string>
     <string name="update_current">Текущая версия: %1$s</string>
     <string name="update_released">Вышла версия: %1$s</string>
@@ -119,8 +122,11 @@
     <string name="wallpaper_title">Обои</string>
     <string name="wallpaper_tab_builtin">Встроенные</string>
     <string name="wallpaper_tab_gallery">Галерея</string>
+    <string name="wallpaper_tab_live">Живые</string>
     <string name="wallpaper_tab_color">Цвет</string>
     <string name="wallpaper_pick_photo">Выбрать фото</string>
+    <string name="wallpaper_pick_video">Выбрать видео</string>
+    <string name="wallpaper_live_hint">Живые обои на главный экран: ролик до 30 секунд. Можно обрезать в приложении.</string>
     <string name="wallpaper_dim">Затемнение</string>
     <string name="wallpaper_blur">Размытие</string>
     <string name="wallpaper_apply">Применить</string>
@@ -231,4 +237,13 @@
     <string name="search_image_progress">Читаем текст с картинки…</string>
     <string name="search_image_empty">На картинке нет текста</string>
     <string name="search_image_found">Ищем: %1$s</string>
+
+    <string name="video_trim_title">Обрезать видео</string>
+    <string name="video_trim_confirm">Обрезать</string>
+    <string name="video_trim_busy">Обрезаем ролик…</string>
+    <string name="video_trim_failed">Не удалось обрезать видео. Попробуйте другой файл.</string>
+    <string name="video_trim_range">%1$s – %2$s (%3$s)</string>
+    <string name="video_trim_hint_folder">Выберите фрагмент не длиннее 10 секунд — он станет живым ярлыком папки</string>
+    <string name="video_trim_hint_wallpaper">Выберите фрагмент не длиннее 30 секунд</string>
+    <string name="video_trim_hint_note">Можно обрезать ролик или оставить целиком</string>
 </resources>

@@ -20,6 +20,12 @@ data class Note(
 ) {
     val hasMeetingPlace: Boolean get() = meetingPlace.isNotBlank() || (meetingLat != null && meetingLng != null)
     val hasCoordinates: Boolean get() = meetingLat != null && meetingLng != null
+    val hasContent: Boolean
+        get() = title.isNotBlank() ||
+            body.isNotBlank() ||
+            meetingPlace.isNotBlank() ||
+            attachments.isNotEmpty() ||
+            reminderAt != null
 
     companion object {
         const val DEFAULT_NOTE_COLOR = "#4A90E2"

@@ -2,8 +2,8 @@ package com.breez.notes.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.breez.notes.data.repository.PaletteRepository
 import com.breez.notes.domain.model.Palette
+import com.breez.notes.domain.model.Palettes
 import com.breez.notes.domain.model.ThemeMode
 import com.breez.notes.domain.model.ThemeSettings
 import com.breez.notes.domain.model.WallpaperSettings
@@ -17,8 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ThemeViewModel @Inject constructor(
-    private val themeRepository: ThemeRepository,
-    private val paletteRepository: PaletteRepository
+    private val themeRepository: ThemeRepository
 ) : ViewModel() {
 
     val settings: StateFlow<ThemeSettings> = themeRepository.themeSettings
@@ -27,9 +26,9 @@ class ThemeViewModel @Inject constructor(
     val wallpaper: StateFlow<WallpaperSettings> = themeRepository.wallpaperSettings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WallpaperSettings())
 
-    val palettes: List<Palette> = paletteRepository.palettes
+    val palettes: List<Palette> = Palettes.all
 
-    fun paletteFor(id: String): Palette = paletteRepository.find(id)
+    fun paletteFor(id: String): Palette = Palettes.find(id)
 
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { themeRepository.setThemeMode(mode) }

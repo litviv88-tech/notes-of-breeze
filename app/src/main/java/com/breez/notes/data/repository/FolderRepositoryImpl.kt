@@ -45,7 +45,7 @@ class FolderRepositoryImpl @Inject constructor(
         runCatching {
             if (folder.markType == FolderMarkType.VIDEO && mediaUri != null) {
                 val duration = markStore.durationMs(mediaUri)
-                if (duration > Folder.MAX_VIDEO_DURATION_MS) {
+                if (duration > Folder.MAX_VIDEO_DURATION_MS + 2_000L) {
                     return@withContext FolderMarkSaveResult.VideoTooLong
                 }
             }

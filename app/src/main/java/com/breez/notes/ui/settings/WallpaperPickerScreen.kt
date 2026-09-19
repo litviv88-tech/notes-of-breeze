@@ -1,6 +1,7 @@
 package com.breez.notes.ui.settings
 
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,9 +23,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,11 +41,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.breez.notes.R
+import com.breez.notes.domain.model.WallpaperSettings
 import com.breez.notes.domain.model.WallpaperType
 import com.breez.notes.ui.components.BreezButton
 import com.breez.notes.ui.components.BreezTopBar
 import com.breez.notes.ui.components.ColorPickerDialog
 import com.breez.notes.ui.components.WallpaperBackground
+import com.breez.notes.ui.media.VideoTrimDialog
 import com.breez.notes.ui.theme.BuiltInWallpapers
 import com.breez.notes.ui.theme.Transparent
 import com.breez.notes.ui.theme.parseHexColor
@@ -60,6 +63,7 @@ fun WallpaperPickerScreen(
     var tab by remember { mutableIntStateOf(0) }
     var colorPicker by remember { mutableStateOf(false) }
     var applied by remember { mutableStateOf(false) }
+    var trimUri by remember { mutableStateOf<Uri?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         runCatching {
@@ -76,6 +80,9 @@ fun WallpaperPickerScreen(
         }
         tab = 1
     }
+    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { trimUri = it }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         WallpaperBackground(settings = settings)
@@ -91,13 +98,15 @@ fun WallpaperPickerScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            TabRow(
+            ScrollableTabRow(
                 selectedTabIndex = tab,
-                containerColor = Transparent
+                containerColor = Transparent,
+                edgePadding = 0.dp
             ) {
                 Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.wallpaper_tab_builtin)) })
                 Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.wallpaper_tab_gallery)) })
-                Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text(stringResource(R.string.wallpaper_tab_color)) })
+                Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text(stringResource(R.string.wallpaper_tab_live)) })
+                Tab(selected = tab == 3, onClick = { tab = 3 }, text = { Text(stringResource(R.string.wallpaper_tab_color)) })
             }
             SpacerPreview()
             when (tab) {
@@ -138,6 +147,22 @@ fun WallpaperPickerScreen(
                         text = stringResource(R.string.wallpaper_pick_photo),
                         onClick = {
                             picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                2 -> {
+                    Text(
+                        text = stringResource(R.string.wallpaper_live_hint),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    SpacerPreview()
+                    BreezButton(
+                        text = stringResource(R.string.wallpaper_pick_video),
+                        onClick = {
+                            videoPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+                            )
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -186,6 +211,20 @@ fun WallpaperPickerScreen(
                 }
             },
             onDismiss = { colorPicker = false }
+        )
+    }
+    val pendingTrim = trimUri
+    if (pendingTrim != null) {
+        VideoTrimDialog(
+            source = pendingTrim,
+            maxDurationMs = WallpaperSettings.MAX_VIDEO_DURATION_MS,
+            hint = stringResource(R.string.video_trim_hint_wallpaper),
+            onConfirm = { file ->
+                viewModel.setLiveVideo(file)
+                tab = 2
+                trimUri = null
+            },
+            onDismiss = { trimUri = null }
         )
     }
 }

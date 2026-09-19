@@ -17,9 +17,11 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.breez.notes.domain.model.WallpaperSettings
 import com.breez.notes.domain.model.WallpaperType
+import com.breez.notes.ui.media.LoopingTextureVideo
 import com.breez.notes.ui.theme.ScrimBlack
 import com.breez.notes.ui.theme.parseHexColor
 import com.breez.notes.ui.theme.wallpaperById
+import java.io.File
 
 @Composable
 fun WallpaperBackground(
@@ -73,6 +75,22 @@ fun WallpaperBackground(
                             .fillMaxSize()
                             .background(parseHexColor(settings.wallpaperColorHex ?: "#4A90E2"))
                     )
+                }
+                WallpaperType.VIDEO -> {
+                    val file = settings.wallpaperUri?.let(::File)
+                    if (file != null && file.exists()) {
+                        LoopingTextureVideo(
+                            file = file,
+                            modifier = Modifier.fillMaxSize(),
+                            muted = true
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(wallpaperById(settings.builtInWallpaperId).brush)
+                        )
+                    }
                 }
             }
         }

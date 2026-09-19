@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ import com.breez.notes.domain.model.Note
 import com.breez.notes.domain.repository.FolderMarkSaveResult
 import com.breez.notes.domain.repository.FolderRepository
 import com.breez.notes.domain.repository.NoteRepository
+import com.breez.notes.domain.usecase.DeleteNote
 import com.breez.notes.ui.components.BreezButton
 import com.breez.notes.ui.components.BreezTextButton
 import com.breez.notes.ui.components.BreezTopBar
@@ -71,6 +73,7 @@ class FolderDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val folderRepository: FolderRepository,
     private val noteRepository: NoteRepository,
+    private val deleteNoteUseCase: DeleteNote,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -144,7 +147,7 @@ class FolderDetailViewModel @Inject constructor(
     }
 
     fun deleteNote(note: Note) {
-        viewModelScope.launch { noteRepository.delete(note) }
+        viewModelScope.launch { deleteNoteUseCase(note) }
     }
 
     fun togglePin(note: Note) {
@@ -194,13 +197,16 @@ fun FolderDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (folder != null && folder.markType != FolderMarkType.COLOR) {
+            if (folder != null) {
                 FolderMarkCover(
                     folder = folder,
                     playVideo = folder.markType == FolderMarkType.VIDEO,
+                    shape = MaterialTheme.shapes.large,
                     modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                         .fillMaxWidth()
-                        .height(160.dp)
+                        .height(200.dp)
+                        .clip(MaterialTheme.shapes.large)
                         .clickable(enabled = folder.hasMediaMark) {
                             openFolderMark(context, folder)
                         }

@@ -11,6 +11,8 @@ import com.breez.notes.domain.model.NoteAttachment
 import com.breez.notes.domain.model.Recurrence
 import com.breez.notes.domain.repository.FolderRepository
 import com.breez.notes.domain.repository.NoteRepository
+import com.breez.notes.domain.usecase.DeleteNote
+import com.breez.notes.domain.usecase.SaveNote
 import com.breez.notes.reminders.MeetingPlaceLocator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -49,6 +51,8 @@ data class EditorUiState(
 class EditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val noteRepository: NoteRepository,
+    private val saveNote: SaveNote,
+    private val deleteNote: DeleteNote,
     folderRepository: FolderRepository,
     private val meetingPlaceLocator: MeetingPlaceLocator,
     @ApplicationContext private val context: Context
@@ -94,15 +98,10 @@ class EditorViewModel @Inject constructor(
 
     suspend fun persist(): Long {
         val state = draft.value
-        val hasContent = state.title.isNotBlank() ||
-            state.body.isNotBlank() ||
-            state.meetingPlace.isNotBlank() ||
-            state.attachments.isNotEmpty() ||
-            state.reminderAt != null
-        if (!hasContent && state.noteId == 0L) return 0L
         val now = System.currentTimeMillis()
         val note = state.toNote(now)
-        val id = noteRepository.upsert(note)
+        val id = saveNote(note)
+        if (id == 0L) return 0L
         val saved = noteRepository.getById(id) ?: note.copy(id = id)
         draft.update {
             saved.toEditorState(isNew = false).copy(folders = it.folders)
@@ -114,7 +113,7 @@ class EditorViewModel @Inject constructor(
         viewModelScope.launch {
             val state = draft.value
             if (state.noteId > 0L) {
-                noteRepository.delete(state.toNote(System.currentTimeMillis()))
+                deleteNote(state.toNote(System.currentTimeMillis()))
             }
             onDone()
         }
@@ -188,7 +187,7 @@ class EditorViewModel @Inject constructor(
     private suspend fun persistEmpty(): Long {
         val state = draft.value
         val now = System.currentTimeMillis()
-        val id = noteRepository.upsert(state.toNote(now))
+        val id = saveNote(state.toNote(now), allowEmpty = true)
         draft.update { it.copy(noteId = id, isNew = false, createdAt = if (state.isNew) now else state.createdAt) }
         return id
     }

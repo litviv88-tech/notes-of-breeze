@@ -98,7 +98,7 @@ class BreezJsBridge(context: Context) {
         prefs.all.keys.filter { it.startsWith(NOTE_PREFIX) && it !in keepNoteKeys }.forEach { stale ->
             val staleId = prefs.getLong(stale, 0L)
             if (staleId != 0L) {
-                entry.noteRepository().getById(staleId)?.let { entry.noteRepository().delete(it) }
+                entry.noteRepository().getById(staleId)?.let { entry.deleteNote()(it) }
             }
             editor.remove(stale)
         }

@@ -152,8 +152,8 @@ fun NotesScreen(
                             leadingIcon = {
                                 FolderMarkBadge(
                                     folder = folder,
-                                    modifier = Modifier.size(18.dp),
-                                    size = 18.dp
+                                    modifier = Modifier.size(22.dp),
+                                    size = 22.dp
                                 )
                             },
                             label = { Text(folder.name) }

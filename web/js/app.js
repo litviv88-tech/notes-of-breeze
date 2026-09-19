@@ -6,7 +6,7 @@ const I18N = {
     download: "Скачать на Android",
     openWeb: "Открыть веб-версию",
     feature1t: "Заметки и папки",
-    feature1: "Заголовок, текст, цвет метки, закрепление и папки со счётчиком.",
+    feature1: "Заголовок, текст, цвет метки, закрепление и папки с ярлыками.",
     feature2t: "12 палитр",
     feature2: "Breez Blue, Mint, Lavender и остальные, плюс свой цвет.",
     feature3t: "Обои",
@@ -27,7 +27,7 @@ const I18N = {
     appearance: "Внешний вид",
     wallpaper: "Обои",
     about: "О приложении",
-    aboutText: "Breez Notes 1.1 — спокойные заметки с палитрами и обоями. Веб-версия хранит данные в этом браузере.",
+    aboutText: "Breez Notes 1.2.0 — спокойные заметки с палитрами и обоями. Веб-версия хранит данные в этом браузере.",
     save: "Сохранить",
     title: "Заголовок",
     body: "Текст заметки",
@@ -74,7 +74,7 @@ const I18N = {
     download: "Download for Android",
     openWeb: "Open web app",
     feature1t: "Notes and folders",
-    feature1: "Title, body, label color, pin and folders with counters.",
+    feature1: "Title, body, label color, pin and folders with photo or video labels.",
     feature2t: "12 palettes",
     feature2: "Breez Blue, Mint, Lavender and more, plus a custom color.",
     feature3t: "Wallpapers",
@@ -95,7 +95,7 @@ const I18N = {
     appearance: "Appearance",
     wallpaper: "Wallpaper",
     about: "About",
-    aboutText: "Breez Notes 1.1 — calm notes with palettes and wallpapers. The web version stores data in this browser.",
+    aboutText: "Breez Notes 1.2.0 — calm notes with palettes and wallpapers. The web version stores data in this browser.",
     save: "Save",
     title: "Title",
     body: "Note text",
@@ -168,9 +168,11 @@ const WALLS = [
 ];
 
 const KEY = "breez-web-v2";
+const LEGACY_KEYS = ["breez-web-v1", "breez-notes"];
+const SCHEMA_VERSION = 1;
 const APK = "./downloads/BreezNotes.apk";
-const WEB_VERSION = 4;
-const APP_VERSION = "1.1";
+const WEB_VERSION = 5;
+const APP_VERSION = "1.2.0";
 
 let waitingWorker = null;
 let updateInfo = {
@@ -197,30 +199,98 @@ function uid() {
 
 function seed() {
   const inboxId = uid();
+  const now = Date.now();
   return {
+    schemaVersion: SCHEMA_VERSION,
     lang: "ru",
     themeMode: "SYSTEM",
     paletteId: "breez_blue",
     customHex: "#4A90E2",
     wallpaper: { type: "BUILTIN", id: "breeze_sky", photo: "", color: "#4A90E2", dim: 0.25 },
-    folders: [{ id: inboxId, name: "Inbox", colorHex: "#7ED9C4" }],
-    notes: [{
+    folders: [normalizeFolder({ id: inboxId, name: "Inbox", colorHex: "#7ED9C4", createdAt: now })],
+    notes: [normalizeNote({
       id: uid(),
       title: "Breez Notes",
       body: "Добро пожаловать. Это веб-версия: данные хранятся в браузере. Скачайте APK, чтобы поставить приложение на телефон.",
       folderId: inboxId,
       colorHex: "#4A90E2",
       pinned: true,
-      updatedAt: Date.now()
-    }]
+      createdAt: now,
+      updatedAt: now
+    })]
   };
+}
+
+function normalizeFolder(folder, index) {
+  const now = Date.now();
+  return {
+    id: folder?.id || uid(),
+    name: folder?.name || "Папка",
+    colorHex: folder?.colorHex || "#7ED9C4",
+    markType: folder?.markType || "COLOR",
+    markFileName: folder?.markFileName || "",
+    sortOrder: Number.isFinite(folder?.sortOrder) ? folder.sortOrder : (index ?? 0),
+    createdAt: folder?.createdAt || now
+  };
+}
+
+function normalizeNote(note, index) {
+  const now = Date.now();
+  const recurrence = note?.recurrence || {};
+  return {
+    id: note?.id || uid(),
+    title: note?.title || "",
+    body: note?.body || "",
+    folderId: note?.folderId ?? null,
+    colorHex: note?.colorHex || "#4A90E2",
+    pinned: !!(note?.pinned || note?.isPinned),
+    sortOrder: Number.isFinite(note?.sortOrder) ? note.sortOrder : (index ?? 0),
+    reminderAt: note?.reminderAt ?? null,
+    meetingPlace: note?.meetingPlace || "",
+    meetingLat: note?.meetingLat ?? null,
+    meetingLng: note?.meetingLng ?? null,
+    locationReminder: !!note?.locationReminder,
+    recurrence: {
+      unit: recurrence.unit || "NONE",
+      interval: Number.isFinite(recurrence.interval) ? recurrence.interval : 1,
+      weekDays: Array.isArray(recurrence.weekDays) ? recurrence.weekDays : [],
+      untilAt: recurrence.untilAt ?? null
+    },
+    createdAt: note?.createdAt || note?.updatedAt || now,
+    updatedAt: note?.updatedAt || now
+  };
+}
+
+function migrateState(raw) {
+  const data = raw && typeof raw === "object" ? raw : {};
+  const version = Number(data.schemaVersion) || 0;
+  const next = { ...seed(), ...data };
+  if (version < 1) {
+    next.folders = (data.folders || next.folders || []).map(normalizeFolder);
+    next.notes = (data.notes || next.notes || []).map(normalizeNote);
+  }
+  next.schemaVersion = SCHEMA_VERSION;
+  return next;
+}
+
+function readStoredState() {
+  const keys = [KEY, ...LEGACY_KEYS];
+  for (const key of keys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    const parsed = JSON.parse(raw);
+    const migrated = migrateState(parsed);
+    if ((Number(parsed.schemaVersion) || 0) < SCHEMA_VERSION || key !== KEY) {
+      localStorage.setItem(KEY, JSON.stringify(migrated));
+    }
+    return migrated;
+  }
+  return null;
 }
 
 function loadState() {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return seed();
-    return { ...seed(), ...JSON.parse(raw) };
+    return readStoredState() || seed();
   } catch {
     return seed();
   }
@@ -235,6 +305,7 @@ let selectedFolder = null;
 let hsv = { h: 210, s: 0.67, v: 0.89 };
 
 function save() {
+  state.schemaVersion = SCHEMA_VERSION;
   localStorage.setItem(KEY, JSON.stringify(state));
   try {
     if (window.BreezNative && typeof window.BreezNative.onNotesChanged === "function") {
@@ -393,7 +464,7 @@ function renderNotes() {
     <div class="search-wrap"><input class="search" id="search" placeholder="${t("search")}" value="${escapeHtml(query)}"></div>
     <div class="chips">
       <button class="chip ${selectedFolder ? "" : "active"}" data-folder="">${t("all")}</button>
-      ${state.folders.map((f) => `<button class="chip ${selectedFolder === f.id ? "active" : ""}" data-folder="${escapeHtml(f.id)}">${escapeHtml(f.name)}</button>`).join("")}
+      ${state.folders.map((f) => `<button class="chip ${selectedFolder === f.id ? "active" : ""}" data-folder="${escapeHtml(f.id)}"><span class="chip-mark" style="background:${escapeHtml(f.colorHex || "#7ED9C4")}"></span>${escapeHtml(f.name)}</button>`).join("")}
     </div>
     ${notes.length === 0 ? `<div class="empty">${t("empty")}</div>` : `<div class="list">${notes.map((n) => `
       <article class="note" data-open="${escapeHtml(n.id)}">
@@ -439,8 +510,7 @@ function renderFolders() {
     </div>
     <div class="grid-2">
       ${state.folders.map((f) => `
-        <article class="card folder-card" data-open-folder="${escapeHtml(f.id)}">
-          <div class="dot" style="background:${escapeHtml(f.colorHex || "#7ED9C4")}"></div>
+        <article class="card folder-card" data-open-folder="${escapeHtml(f.id)}" style="--folder-color:${escapeHtml(f.colorHex || "#7ED9C4")}">
           <h3>${escapeHtml(f.name)}</h3>
           <p>${folderCount(f.id)}</p>
         </article>`).join("")}
@@ -827,7 +897,12 @@ function openFolderDialog() {
   document.getElementById("create-folder").onclick = () => {
     const name = document.getElementById("folder-name").value.trim();
     if (!name) return;
-    state.folders.push({ id: uid(), name, colorHex: document.getElementById("folder-color").value });
+    state.folders.push(normalizeFolder({
+      id: uid(),
+      name,
+      colorHex: document.getElementById("folder-color").value,
+      sortOrder: state.folders.length
+    }));
     save();
     render();
   };
@@ -839,14 +914,17 @@ function persistDraft(title, body, flipPin) {
   if (editorId) {
     const note = noteById(editorId);
     if (!note) return;
-    note.title = title;
-    note.body = body;
-    note.folderId = folderSel;
-    note.colorHex = colorHex;
-    if (flipPin) note.pinned = !note.pinned;
-    note.updatedAt = Date.now();
+    Object.assign(note, normalizeNote({
+      ...note,
+      title,
+      body,
+      folderId: folderSel,
+      colorHex,
+      pinned: flipPin ? !note.pinned : note.pinned,
+      updatedAt: Date.now()
+    }));
   } else {
-    const created = {
+    const created = normalizeNote({
       id: uid(),
       title,
       body,
@@ -854,7 +932,7 @@ function persistDraft(title, body, flipPin) {
       colorHex,
       pinned: Boolean(flipPin),
       updatedAt: Date.now()
-    };
+    });
     state.notes.unshift(created);
     editorId = created.id;
   }

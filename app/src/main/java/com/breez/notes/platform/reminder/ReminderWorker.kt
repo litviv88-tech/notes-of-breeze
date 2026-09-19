@@ -1,4 +1,4 @@
-package com.breez.notes.ui.editor
+package com.breez.notes.platform.reminder
 
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,8 +12,8 @@ import com.breez.notes.BreezApplication
 import com.breez.notes.MainActivity
 import com.breez.notes.R
 import com.breez.notes.domain.repository.NoteRepository
+import com.breez.notes.domain.usecase.SetReminder
 import com.breez.notes.reminders.RecurrenceCalculator
-import com.breez.notes.reminders.ReminderCoordinator
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -22,7 +22,7 @@ class ReminderWorker @AssistedInject constructor(
     @Assisted private val context: Context,
     @Assisted params: WorkerParameters,
     private val noteRepository: NoteRepository,
-    private val reminderCoordinator: ReminderCoordinator
+    private val setReminder: SetReminder
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -67,8 +67,8 @@ class ReminderWorker @AssistedInject constructor(
                 now = now
             )
             val updated = note.copy(reminderAt = next, updatedAt = now)
-            noteRepository.upsert(updated, syncReminders = false)
-            reminderCoordinator.schedule(updated, replaceExisting = false)
+            noteRepository.upsert(updated)
+            setReminder(updated, replaceExisting = false)
         }
         return Result.success()
     }

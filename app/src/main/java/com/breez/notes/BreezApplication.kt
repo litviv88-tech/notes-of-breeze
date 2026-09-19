@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.breez.notes.platform.widget.WidgetRefreshObserver
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -15,6 +16,9 @@ class BreezApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var widgetRefreshObserver: WidgetRefreshObserver
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -23,6 +27,7 @@ class BreezApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         createReminderChannel()
+        widgetRefreshObserver.start()
     }
 
     private fun createReminderChannel() {

@@ -1,6 +1,7 @@
 package com.breez.notes.ui.editor
 
 import android.Manifest
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -67,6 +68,7 @@ import com.breez.notes.ui.components.BreezTextField
 import com.breez.notes.ui.components.BreezTopBar
 import com.breez.notes.ui.components.ColorPickerDialog
 import com.breez.notes.ui.folders.FolderMarkBadge
+import com.breez.notes.ui.media.VideoTrimDialog
 import com.breez.notes.ui.theme.Transparent
 import com.breez.notes.ui.theme.parseHexColor
 import com.breez.notes.ui.theme.toHex
@@ -90,13 +92,14 @@ fun EditorScreen(
     var pendingDate by remember { mutableStateOf<Long?>(null) }
     var deleteConfirm by remember { mutableStateOf(false) }
     var pendingLocationAction by remember { mutableStateOf<LocationAction?>(null) }
+    var trimUri by remember { mutableStateOf<Uri?>(null) }
     val sheetState = rememberModalBottomSheetState()
     val lifecycleOwner = LocalLifecycleOwner.current
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { viewModel.addAttachment(it, "image/*") }
     }
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let { viewModel.addAttachment(it, "video/*") }
+        uri?.let { trimUri = it }
     }
     val backgroundPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -341,6 +344,20 @@ fun EditorScreen(
         )
     }
 
+    val pendingTrim = trimUri
+    if (pendingTrim != null) {
+        VideoTrimDialog(
+            source = pendingTrim,
+            maxDurationMs = Long.MAX_VALUE,
+            hint = stringResource(R.string.video_trim_hint_note),
+            onConfirm = { file ->
+                viewModel.addAttachment(Uri.fromFile(file), "video/mp4")
+                trimUri = null
+            },
+            onDismiss = { trimUri = null }
+        )
+    }
+
     if (datePicker) {
         val dateState = rememberDatePickerState()
         DatePickerDialog(
@@ -432,7 +449,7 @@ private fun FolderOption(
     ) {
         RadioButton(selected = selected, onClick = onClick)
         if (folder != null) {
-            FolderMarkBadge(folder = folder, size = 20.dp)
+            FolderMarkBadge(folder = folder, size = 24.dp)
             Spacer(Modifier.size(8.dp))
         }
         Text(text = name, style = MaterialTheme.typography.bodyLarge)
