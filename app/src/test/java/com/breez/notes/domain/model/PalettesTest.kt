@@ -8,7 +8,7 @@ class PalettesTest {
 
     @Test
     fun catalogDoesNotDependOnAndroidResources() {
-        assertEquals(12, Palettes.all.size)
+        assertEquals(1, Palettes.all.size)
         Palettes.all.forEach { palette ->
             assertTrue(palette.id.isNotBlank())
             assertTrue(palette.nameKey.startsWith("palette_"))

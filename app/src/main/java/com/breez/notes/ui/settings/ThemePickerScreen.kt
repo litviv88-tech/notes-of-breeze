@@ -4,26 +4,19 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -41,7 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.breez.notes.R
 import com.breez.notes.domain.model.Palette
-import com.breez.notes.domain.model.ThemeMode
+import com.breez.notes.domain.model.Palettes
 import com.breez.notes.ui.components.BreezButton
 import com.breez.notes.ui.components.BreezCard
 import com.breez.notes.ui.components.BreezTopBar
@@ -57,12 +50,8 @@ fun ThemePickerScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     var colorPicker by remember { mutableStateOf(false) }
-    val modes = listOf(
-        ThemeMode.SYSTEM to R.string.theme_mode_system,
-        ThemeMode.LIGHT to R.string.theme_mode_light,
-        ThemeMode.DARK to R.string.theme_mode_dark,
-        ThemeMode.AUTO to R.string.theme_mode_auto
-    )
+    val readyPalette = Palettes.all.first()
+    val selectedReady = settings.paletteId == readyPalette.id && !settings.useMaterialYou
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -88,54 +77,39 @@ fun ThemePickerScreen(
                 }
             }
             Spacer(Modifier.height(20.dp))
-            Text(stringResource(R.string.theme_mode), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            modes.chunked(2).forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    row.forEach { (mode, labelRes) ->
-                        val selected = settings.themeMode == mode
-                        OutlinedCard(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(bottom = 8.dp)
-                                .clickable { viewModel.setThemeMode(mode) },
-                            colors = CardDefaults.outlinedCardColors(
-                                containerColor = if (selected) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                }
-                            )
-                        ) {
-                            Text(
-                                text = stringResource(labelRes),
-                                modifier = Modifier.padding(16.dp),
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
             Text(stringResource(R.string.theme_palettes), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                modifier = Modifier.height(220.dp),
-                userScrollEnabled = false,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(0.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        viewModel.setPalette(readyPalette.id)
+                    }
+                    .padding(vertical = 8.dp)
             ) {
-                items(viewModel.palettes) { palette ->
-                    val selected = settings.paletteId == palette.id && !settings.useMaterialYou
-                    PaletteDot(
-                        hex = palette.primaryHex,
-                        selected = selected,
-                        onClick = { viewModel.setPalette(palette.id) }
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(parseHexColor(readyPalette.primaryHex))
+                        .then(
+                            if (selectedReady) {
+                                Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                            } else {
+                                Modifier
+                            }
+                        )
+                )
+                Spacer(Modifier.size(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.palette_breez_blue),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = stringResource(R.string.theme_ready_palette_subtitle),
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
@@ -173,20 +147,4 @@ fun ThemePickerScreen(
             onDismiss = { colorPicker = false }
         )
     }
-}
-
-@Composable
-private fun PaletteDot(hex: String, selected: Boolean, onClick: () -> Unit) {
-    val color = parseHexColor(hex)
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .clip(CircleShape)
-            .background(color)
-            .then(
-                if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                else Modifier
-            )
-            .clickable(onClick = onClick)
-    )
 }

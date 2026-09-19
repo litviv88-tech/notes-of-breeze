@@ -270,25 +270,40 @@ fun NotesScreen(
                 colors = ListItemDefaults.colors(containerColor = Transparent),
                 modifier = Modifier.clickable(onClick = onOpenWallpaper)
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = themeSettings.themeMode == ThemeMode.LIGHT,
-                    onClick = { themeViewModel.setThemeMode(ThemeMode.LIGHT) },
-                    leadingIcon = { Icon(Icons.Outlined.LightMode, contentDescription = null) },
-                    label = { Text(stringResource(R.string.theme_mode_light)) }
-                )
-                FilterChip(
-                    selected = themeSettings.themeMode == ThemeMode.DARK,
-                    onClick = { themeViewModel.setThemeMode(ThemeMode.DARK) },
-                    leadingIcon = { Icon(Icons.Outlined.DarkMode, contentDescription = null) },
-                    label = { Text(stringResource(R.string.theme_mode_dark)) }
-                )
-            }
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_theme_mode)) },
+                supportingContent = {
+                    Text(
+                        stringResource(
+                            if (themeSettings.themeMode == ThemeMode.DARK) {
+                                R.string.theme_mode_dark
+                            } else {
+                                R.string.theme_mode_light
+                            }
+                        )
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        imageVector = if (themeSettings.themeMode == ThemeMode.DARK) {
+                            Icons.Outlined.DarkMode
+                        } else {
+                            Icons.Outlined.LightMode
+                        },
+                        contentDescription = null
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Transparent),
+                modifier = Modifier.clickable {
+                    themeViewModel.setThemeMode(
+                        if (themeSettings.themeMode == ThemeMode.DARK) {
+                            ThemeMode.LIGHT
+                        } else {
+                            ThemeMode.DARK
+                        }
+                    )
+                }
+            )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.backup_title)) },
                 supportingContent = { Text(stringResource(R.string.backup_subtitle)) },

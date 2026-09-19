@@ -88,15 +88,17 @@
 
     <string name="settings_title">Настройки</string>
     <string name="settings_appearance">Внешний вид</string>
-    <string name="settings_appearance_subtitle">Тема, палитра, Material You</string>
+    <string name="settings_appearance_subtitle">Одна готовая палитра и свой цвет</string>
     <string name="settings_wallpaper">Обои</string>
     <string name="settings_wallpaper_subtitle">Градиенты, фото, живые обои и цвет</string>
+    <string name="settings_theme_mode">Светлая / тёмная тема</string>
+    <string name="settings_theme_mode_subtitle">Переключить одной кнопкой</string>
     <string name="settings_web">Веб-заметки</string>
     <string name="settings_web_subtitle">JS-версия с сохранением в приложение и виджет</string>
     <string name="settings_about">О приложении</string>
-    <string name="settings_about_subtitle">Breez Notes 1.3.2</string>
+    <string name="settings_about_subtitle">Breez Notes 1.4.1</string>
     <string name="about_title">О приложении</string>
-    <string name="about_version">Версия 1.3.2</string>
+    <string name="about_version">Версия 1.4.1</string>
     <string name="update_title">Обновление</string>
     <string name="update_current">Текущая версия: %1$s</string>
     <string name="update_released">Вышла версия: %1$s</string>
@@ -119,7 +121,8 @@
     <string name="theme_mode_light">Светлая</string>
     <string name="theme_mode_dark">Тёмная</string>
     <string name="theme_mode_auto">Авто 20:00–7:00</string>
-    <string name="theme_palettes">Палитры</string>
+    <string name="theme_palettes">Цвет темы</string>
+    <string name="theme_ready_palette_subtitle">Единственная готовая палитра</string>
     <string name="theme_material_you">Material You</string>
     <string name="theme_material_you_subtitle">Динамические цвета Android 12+</string>
     <string name="theme_custom_color">Свой цвет</string>

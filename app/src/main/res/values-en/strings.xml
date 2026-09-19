@@ -88,15 +88,17 @@
 
     <string name="settings_title">Settings</string>
     <string name="settings_appearance">Appearance</string>
-    <string name="settings_appearance_subtitle">Theme, palette, Material You</string>
+    <string name="settings_appearance_subtitle">One ready palette and a custom color</string>
     <string name="settings_wallpaper">Wallpaper</string>
     <string name="settings_wallpaper_subtitle">Gradients, photo, live wallpaper and solid color</string>
+    <string name="settings_theme_mode">Light / dark theme</string>
+    <string name="settings_theme_mode_subtitle">Switch with one button</string>
     <string name="settings_web">Web notes</string>
     <string name="settings_web_subtitle">JS version that saves into the app and widget</string>
     <string name="settings_about">About</string>
-    <string name="settings_about_subtitle">Breez Notes 1.3.2</string>
+    <string name="settings_about_subtitle">Breez Notes 1.4.1</string>
     <string name="about_title">About</string>
-    <string name="about_version">Version 1.3.2</string>
+    <string name="about_version">Version 1.4.1</string>
     <string name="update_title">Update</string>
     <string name="update_current">Current version: %1$s</string>
     <string name="update_released">Released version: %1$s</string>
@@ -119,7 +121,8 @@
     <string name="theme_mode_light">Light</string>
     <string name="theme_mode_dark">Dark</string>
     <string name="theme_mode_auto">Auto 8 PM–7 AM</string>
-    <string name="theme_palettes">Palettes</string>
+    <string name="theme_palettes">Theme color</string>
+    <string name="theme_ready_palette_subtitle">The only ready palette</string>
     <string name="theme_material_you">Material You</string>
     <string name="theme_material_you_subtitle">Dynamic colors on Android 12+</string>
     <string name="theme_custom_color">Custom color</string>

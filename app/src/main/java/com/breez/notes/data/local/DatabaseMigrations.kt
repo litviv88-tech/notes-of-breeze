@@ -74,6 +74,7 @@ internal object DatabaseMigrations {
     private val MIGRATION_5_6 = object : Migration(5, 6) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.addColumnIfMissing("notes", "isChecklist", "INTEGER NOT NULL DEFAULT 0")
+            db.addColumnIfMissing("notes", "isArchived", "INTEGER NOT NULL DEFAULT 0")
             db.ensureCurrentIndexes()
         }
     }
