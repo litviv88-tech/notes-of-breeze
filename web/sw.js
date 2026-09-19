@@ -1,4 +1,4 @@
-const CACHE = "breez-notes-web-v10";
+const CACHE = "breez-notes-web-v13";
 const ASSETS = [
   "./index.html",
   "./css/breez.css",

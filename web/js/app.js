@@ -7,8 +7,8 @@ const I18N = {
     openWeb: "Открыть веб-версию",
     feature1t: "Заметки и папки",
     feature1: "Заголовок, текст, цвет метки, закрепление и папки с ярлыками.",
-    feature2t: "12 палитр",
-    feature2: "Breez Blue, Mint, Lavender и остальные, плюс свой цвет.",
+    feature2t: "Одна палитра",
+    feature2: "Готовая Breez Blue и свой цвет. Светлую и тёмную тему переключает отдельная кнопка.",
     feature3t: "Обои",
     feature3: "Встроенные градиенты, затемнение и фото-обои.",
     howTitle: "Как установить на телефон",
@@ -26,8 +26,10 @@ const I18N = {
     settings: "Настройки",
     appearance: "Внешний вид",
     wallpaper: "Обои",
+    themeToggle: "Светлая / тёмная тема",
+    readyPalette: "Единственная готовая палитра",
     about: "О приложении",
-    aboutText: "Breez Notes 1.3.2 — спокойные заметки с палитрами и обоями. Веб-версия хранит данные в этом браузере.",
+    aboutText: "Breez Notes 1.4.1 — спокойные заметки с палитрой и обоями. Веб-версия хранит данные в этом браузере.",
     save: "Сохранить",
     title: "Заголовок",
     body: "Текст заметки",
@@ -98,8 +100,8 @@ const I18N = {
     openWeb: "Open web app",
     feature1t: "Notes and folders",
     feature1: "Title, body, label color, pin and folders with photo or video labels.",
-    feature2t: "12 palettes",
-    feature2: "Breez Blue, Mint, Lavender and more, plus a custom color.",
+    feature2t: "One palette",
+    feature2: "Ready Breez Blue plus a custom color. Light and dark switch with a separate button.",
     feature3t: "Wallpapers",
     feature3: "Built-in gradients, dimming and photo backgrounds.",
     howTitle: "Install on your phone",
@@ -117,8 +119,10 @@ const I18N = {
     settings: "Settings",
     appearance: "Appearance",
     wallpaper: "Wallpaper",
+    themeToggle: "Light / dark theme",
+    readyPalette: "The only ready palette",
     about: "About",
-    aboutText: "Breez Notes 1.3.2 — calm notes with palettes and wallpapers. The web version stores data in this browser.",
+    aboutText: "Breez Notes 1.4.1 — calm notes with a palette and wallpapers. The web version stores data in this browser.",
     save: "Save",
     title: "Title",
     body: "Note text",
@@ -184,18 +188,7 @@ const I18N = {
 };
 
 const PALETTES = [
-  { id: "breez_blue", hex: "#4A90E2", name: "Breez Blue" },
-  { id: "mint", hex: "#7ED9C4", name: "Mint" },
-  { id: "lavender", hex: "#A78BFA", name: "Lavender" },
-  { id: "coral", hex: "#FF7A85", name: "Coral" },
-  { id: "sunset", hex: "#FFB347", name: "Sunset" },
-  { id: "forest", hex: "#4ADE80", name: "Forest" },
-  { id: "ocean", hex: "#06B6D4", name: "Ocean" },
-  { id: "rose", hex: "#F472B6", name: "Rose" },
-  { id: "amber", hex: "#FBBF24", name: "Amber" },
-  { id: "slate", hex: "#64748B", name: "Slate" },
-  { id: "cherry", hex: "#EF4444", name: "Cherry" },
-  { id: "monochrome", hex: "#94A3B8", name: "Monochrome" }
+  { id: "breez_blue", hex: "#4A90E2", name: "Breez Blue" }
 ];
 
 const WALLS = [
@@ -215,10 +208,10 @@ const WALLS = [
 
 const KEY = "breez-web-v2";
 const LEGACY_KEYS = ["breez-web-v1", "breez-notes"];
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const APK = "./downloads/BreezNotes.apk";
-const WEB_VERSION = 9;
-const APP_VERSION = "1.3.2";
+const WEB_VERSION = 13;
+const APP_VERSION = "1.4.1";
 
 let waitingWorker = null;
 let updateInfo = {
@@ -314,6 +307,16 @@ function migrateState(raw) {
   const next = { ...seed(), ...data };
   next.folders = (data.folders || next.folders || []).map(normalizeFolder);
   next.notes = (data.notes || next.notes || []).map(normalizeNote);
+  if (next.paletteId !== "custom" && !PALETTES.some((p) => p.id === next.paletteId)) {
+    next.paletteId = "breez_blue";
+  }
+  const welcomeBody = "Добро пожаловать. Это веб-версия: данные хранятся в браузере. Скачайте APK, чтобы поставить приложение на телефон.";
+  next.notes = next.notes.map((note) => {
+    if (note.title === "Готовая" && (note.body || "").includes("Добро пожаловать. Это веб-версия")) {
+      return { ...note, title: "Breez Notes", body: note.body.includes(welcomeBody) ? note.body : welcomeBody };
+    }
+    return note;
+  });
   next.schemaVersion = SCHEMA_VERSION;
   return next;
 }
@@ -572,10 +575,7 @@ function renderNotes() {
       <div class="settings-item" id="add-folder"><div><b>${t("folderCreate")}</b><div>${t("folderCreateText")}</div></div><span>›</span></div>
       <div class="settings-item" data-go="theme"><div><b>${t("appearance")}</b></div><span>›</span></div>
       <div class="settings-item" data-go="wallpaper"><div><b>${t("wallpaper")}</b></div><span>›</span></div>
-      <div class="chips" style="padding:8px 0">
-        <button class="chip ${state.themeMode === "LIGHT" ? "active" : ""}" data-mode="LIGHT">${t("light")}</button>
-        <button class="chip ${state.themeMode === "DARK" ? "active" : ""}" data-mode="DARK">${t("dark")}</button>
-      </div>
+      <div class="settings-item" data-toggle-theme><div><b>${t("themeToggle")}</b><div>${state.themeMode === "DARK" ? t("dark") : t("light")}</div></div><span>›</span></div>
       <div class="settings-item" data-backup-export><div><b>${t("backup")}</b><div>${t("backupText")}</div></div><span>›</span></div>
       <div class="settings-item" data-backup-import><div><b>${t("backupImport")}</b><div>${t("backupImportText")}</div></div><span>›</span></div>
       <input type="file" id="backup-file" accept="application/json,text/plain" hidden>
@@ -668,16 +668,21 @@ function renderSettings() {
 }
 
 function renderTheme() {
-  const modes = [["SYSTEM", t("system")], ["LIGHT", t("light")], ["DARK", t("dark")], ["AUTO", t("auto")]];
+  const ready = PALETTES[0];
+  const selectedReady = state.paletteId === ready.id;
   return appScreen(`
     <div class="app-top"><button class="icon-btn" data-go="notes">←</button><strong>${t("appearance")}</strong><span></span></div>
     <div class="pad">
       <div class="card" style="margin-bottom:16px"><b>${t("title")}</b><p>${t("heroText")}</p></div>
-      <h3>${t("theme")}</h3>
-      <div class="mode-grid">${modes.map(([id, label]) => `<button class="mode ${state.themeMode === id ? "active" : ""}" data-mode="${id}">${label}</button>`).join("")}</div>
       <h3>${t("palettes")}</h3>
-      <div class="palette-grid">${PALETTES.map((p) => `<button class="swatch ${state.paletteId === p.id ? "active" : ""}" data-palette="${p.id}" style="background:${p.hex}" title="${p.name}"></button>`).join("")}</div>
-      <button class="btn block" style="margin-top:16px" id="custom-color">${t("custom")}</button>
+      <button class="settings-item" data-palette="${ready.id}" style="width:100%;text-align:left;margin:0 0 12px;border:0;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="swatch ${selectedReady ? "active" : ""}" style="background:${ready.hex};width:40px;height:40px;border-radius:50%;display:inline-block"></span>
+          <div><b>${ready.name}</b><div>${t("readyPalette")}</div></div>
+        </div>
+        <span></span>
+      </button>
+      <button class="btn block" style="margin-top:8px" id="custom-color">${t("custom")}</button>
     </div>`);
 }
 
@@ -919,6 +924,13 @@ function handleAppClick(event) {
   const openFolder = closestAction(target, "[data-open-folder]");
   if (openFolder) {
     go("folder", openFolder.dataset.openFolder);
+    return;
+  }
+  const toggleTheme = closestAction(target, "[data-toggle-theme]");
+  if (toggleTheme) {
+    state.themeMode = state.themeMode === "DARK" ? "LIGHT" : "DARK";
+    save();
+    render();
     return;
   }
   const mode = closestAction(target, "[data-mode]");

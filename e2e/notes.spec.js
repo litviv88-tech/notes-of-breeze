@@ -94,39 +94,39 @@ test.describe("Breez Notes e2e", () => {
     const note = page.locator("article.note", { hasText: "Черновик" });
     await note.locator("[data-note-menu]").click();
     await page.locator("#org-rename").click();
-    await page.locator("#rename-value").fill("Готовая");
+    await page.locator("#rename-value").fill("Переименованная");
     await page.locator("#confirm-rename").click();
-    await expect(page.locator("article.note", { hasText: "Готовая" })).toBeVisible();
+    await expect(page.locator("article.note", { hasText: "Переименованная" })).toBeVisible();
 
-    await page.locator("article.note", { hasText: "Готовая" }).locator("[data-note-menu]").click();
+    await page.locator("article.note", { hasText: "Переименованная" }).locator("[data-note-menu]").click();
     await page.locator("#org-move").click();
     await page.locator("[data-pick-folder]", { hasText: "Рабочая" }).click();
     await page.locator(".chip", { hasText: "Рабочая" }).click();
-    await expect(page.locator("article.note", { hasText: "Готовая" })).toBeVisible();
+    await expect(page.locator("article.note", { hasText: "Переименованная" })).toBeVisible();
 
-    await page.locator("article.note", { hasText: "Готовая" }).locator("[data-note-menu]").click();
+    await page.locator("article.note", { hasText: "Переименованная" }).locator("[data-note-menu]").click();
     await page.locator("#org-copy").click();
     await page.locator("[data-pick-folder]").first().click();
     await page.locator(".chip", { hasText: "Все заметки" }).click();
-    await expect(page.locator("article.note", { hasText: "Готовая" })).toHaveCount(2);
+    await expect(page.locator("article.note", { hasText: "Переименованная" })).toHaveCount(2);
   });
 
   test("настройки показывают текущую и вышедшую версию", async ({ page }) => {
     await openNotes(page);
-    await expect(page.locator("text=Текущая версия")).toBeVisible();
-    await expect(page.locator(".update-version-row").first()).toContainText("1.3.2");
+    await expect(page.getByText("Текущая версия", { exact: true })).toBeVisible();
+    await expect(page.locator(".update-version-row").first()).toContainText("1.4.1");
     await expect.poll(async () => {
       return page.locator(".update-version-row").nth(1).innerText();
-    }).toContain("1.3.2");
+    }).toContain("1.4.1");
     await expectWallpaperCoversViewport(page);
   });
 
   test("тема и обои открываются без поломки фона", async ({ page }) => {
     await openNotes(page);
-    await page.locator("[data-go=theme]").click();
-    await expect(page.locator("text=Режим темы")).toBeVisible();
-    await page.locator("[data-mode=DARK]").click();
+    await page.locator("[data-toggle-theme]").click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.locator("[data-go=theme]").click();
+    await expect(page.locator("text=Единственная готовая палитра")).toBeVisible();
     await page.locator("[data-go=notes]").click();
     await page.locator("[data-go=wallpaper]").click();
     await expect(page.locator("[data-wtype=BUILTIN]")).toBeVisible();
