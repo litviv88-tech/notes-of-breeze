@@ -1,0 +1,23 @@
+---
+description: После каждой версии или фикса коммитить и деплоить на GitHub
+alwaysApply: true
+---
+
+# Деплой каждой версии и фикса на GitHub
+
+Пользователь уже просил публиковать **каждую новую версию и каждый фикс**. Не спрашивай отдельное разрешение на коммит и пуш.
+
+После завершения версии или пользовательского фикса:
+
+1. Закоммить в `main`. Сообщение коммита — по-русски, 1–2 предложения про «почему».
+2. Выполни `git push -u origin main`. GitHub Actions сам соберёт APK и выложит сайт на Pages.
+
+Если менялся Android-код:
+
+- Подними `versionCode` и `versionName` в `app/build.gradle.kts`
+- Обнови те же поля в `web/version.json` и увеличь `webVersion`
+
+Если менялся только web — увеличь `webVersion` в `web/version.json`.
+
+Не коммить секреты, `local.properties`, `*.apk`, `node_modules`, `.gradle`, `.kotlin`.
+APK собирает CI и кладёт в GitHub Pages как `downloads/BreezNotes.apk`.

@@ -1,0 +1,2 @@
+-keep class com.breez.notes.** { *; }
+-dontwarn com.breez.notes.**
