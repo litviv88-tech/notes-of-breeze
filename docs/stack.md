@@ -1,6 +1,9 @@
 # Стек
 
-Сборщик: **Gradle 8.7**, Kotlin DSL, version catalog `gradle/libs.versions.toml`.
+Сборщик Android: **Gradle 8.7**, Kotlin DSL, version catalog `gradle/libs.versions.toml`.  
+Документация: **MkDocs Material**, конфиг `mkdocs.yml`.
+
+## Android
 
 | Слой | Технология | Версия |
 | --- | --- | --- |
@@ -11,11 +14,15 @@
 | Навигация | Navigation Compose | 2.8.3 |
 | БД | Room | 2.6.1 |
 | DI | Hilt | 2.52 |
-| Виджеты | Jetpack Glance | 1.1.0 |
+| Виджеты | Jetpack Glance | 1.1.1 |
 | Картинки | Coil 3 | 3.0.4 |
 | Настройки | DataStore Preferences | 1.1.1 |
 | Напоминания | WorkManager | 2.9.1 |
 | Асинхронность | Coroutines | 1.9.0 |
+
+## Веб
+
+Vanilla JS PWA без фреймворка: `web/index.html`, `web/js/app.js`, Service Worker, `localStorage`.
 
 ## Требования к окружению
 

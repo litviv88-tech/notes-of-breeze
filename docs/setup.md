@@ -47,6 +47,23 @@ APK после сборки:
 app\build\outputs\apk\debug\app-debug.apk
 ```
 
+## Предпросмотр документации
+
+Из корня репозитория:
+
+```powershell
+python -m pip install -r docs\requirements.txt
+python -m mkdocs serve
+```
+
+Сборка статического сайта в папку `site\`:
+
+```powershell
+python -m mkdocs build
+```
+
+Папка `site\` в Git не коммитится.
+
 ## Полезные пути
 
 | Что | Где |
@@ -55,3 +72,5 @@ app\build\outputs\apk\debug\app-debug.apk
 | Модуль приложения | `app/build.gradle.kts` |
 | Манифест | `app/src/main/AndroidManifest.xml` |
 | Строки (ru / en) | `app/src/main/res/values/strings.xml`, `values-en/strings.xml` |
+| Документация | `docs/`, конфиг `mkdocs.yml` |
+| Веб-версия | `web/` |

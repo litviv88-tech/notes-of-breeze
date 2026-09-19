@@ -52,7 +52,7 @@ app/src/main/java/com/breez/notes/
 | Экран | Маршрут |
 | --- | --- |
 | Список заметок | `notes` |
-| Редактор | `editor?noteId={noteId}` |
+| Редактор | `editor?noteId={noteId}&checklist={checklist}` |
 | Папки | `folders` |
 | Папка | `folders/{folderId}` |
 | Настройки | `settings` |
