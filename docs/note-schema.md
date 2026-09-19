@@ -2,8 +2,8 @@
 
 Общая модель для Android (Room) и веба (`localStorage`). Пока синхронизации нет, этот файл — единый чеклист при добавлении поля.
 
-Текущая версия схемы данных: **1**.  
-Room: `BreezDatabase` version **5**.  
+Текущая версия схемы данных: **2**.  
+Room: `BreezDatabase` version **6**.  
 Веб: `schemaVersion` внутри ключа `breez-web-v2`.
 
 ## Правило изменений
@@ -30,6 +30,7 @@ Room: `BreezDatabase` version **5**.
 | meetingLng | double? | notes.meetingLng | meetingLng | 1 |
 | locationReminder | bool | notes.locationReminder | locationReminder | 1 |
 | recurrence | object | repeatUnit, repeatInterval, repeatWeekDays, repeatUntilAt | recurrence | 1 |
+| isChecklist | bool | notes.isChecklist | isChecklist | 2 |
 | createdAt | long | notes.createdAt | createdAt | 1 |
 | updatedAt | long | notes.updatedAt | updatedAt | 1 |
 
@@ -50,4 +51,4 @@ Room: `BreezDatabase` version **5**.
 ## Миграции веба
 
 Старые записи без `schemaVersion` считаются версией **0**.  
-`0 → 1`: заполняются недостающие поля заметки и папки значениями по умолчанию. Ключи `breez-web-v1` и `breez-notes` читаются как наследие и перезаписываются в `breez-web-v2`.
+`0 → 2` и `1 → 2`: `migrateState()` нормализует заметки и папки, в том числе `isChecklist`. Ключи `breez-web-v1` и `breez-notes` читаются как наследие и перезаписываются в `breez-web-v2`.

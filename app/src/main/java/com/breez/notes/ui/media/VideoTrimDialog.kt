@@ -87,7 +87,11 @@ fun VideoTrimDialog(
 
     Dialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = !busy)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = !busy,
+            dismissOnClickOutside = false
+        )
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),

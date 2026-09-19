@@ -18,7 +18,7 @@ import com.breez.notes.data.local.entity.WidgetConfigEntity
         WidgetConfigEntity::class,
         AttachmentEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class BreezDatabase : RoomDatabase() {

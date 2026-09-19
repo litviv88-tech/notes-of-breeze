@@ -25,6 +25,7 @@ fun NoteEntity.toDomain(attachments: List<NoteAttachment> = emptyList()): Note =
     locationReminder = locationReminder,
     recurrence = Recurrence.from(repeatUnit, repeatInterval, repeatWeekDays, repeatUntilAt),
     attachments = attachments,
+    isChecklist = isChecklist,
     createdAt = createdAt,
     updatedAt = updatedAt
 )
@@ -46,6 +47,7 @@ fun Note.toEntity(): NoteEntity = NoteEntity(
     repeatInterval = recurrence.interval,
     repeatWeekDays = recurrence.encodeWeekDays(),
     repeatUntilAt = recurrence.untilAt,
+    isChecklist = isChecklist,
     createdAt = createdAt,
     updatedAt = updatedAt
 )

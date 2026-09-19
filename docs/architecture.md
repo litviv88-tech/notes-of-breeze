@@ -30,8 +30,8 @@ app/src/main/java/com/breez/notes/
 
 ## Данные
 
-- Room (`BreezDatabase`, version 5, `exportSchema = true`). JSON схем лежит в `app/schemas/` и коммитится в Git.
-- Миграции `1→5` заданы явно. `fallbackToDestructiveMigration` запрещён.
+- Room (`BreezDatabase`, version 6, `exportSchema = true`). JSON схем лежит в `app/schemas/` и коммитится в Git.
+- Миграции `1→6` заданы явно и идемпотентны. `fallbackToDestructiveMigration` запрещён.
 - У заметки `folderId` с `ForeignKey.SET_NULL`.
 - DataStore: тема, палитра, Material You, обои.
 - Общий контракт Android ↔ веб: [docs/note-schema.md](note-schema.md).

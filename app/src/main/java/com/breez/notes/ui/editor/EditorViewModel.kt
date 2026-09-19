@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.breez.notes.domain.model.ChecklistFormat
+import com.breez.notes.domain.model.ChecklistItem
 import com.breez.notes.domain.model.Folder
 import com.breez.notes.domain.model.Note
 import com.breez.notes.domain.model.NoteAttachment
@@ -40,6 +42,7 @@ data class EditorUiState(
     val locationReminder: Boolean = false,
     val recurrence: Recurrence = Recurrence(),
     val attachments: List<NoteAttachment> = emptyList(),
+    val isChecklist: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val folders: List<Folder> = emptyList(),
     val isNew: Boolean = true,
@@ -59,7 +62,14 @@ class EditorViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val incomingId: Long = savedStateHandle.get<Long>("noteId") ?: -1L
-    private val draft = MutableStateFlow(EditorUiState(isNew = incomingId <= 0L))
+    private val incomingChecklist = (savedStateHandle.get<Int>("checklist") ?: 0) == 1
+    private val draft = MutableStateFlow(
+        EditorUiState(
+            isNew = incomingId <= 0L,
+            isChecklist = incomingChecklist,
+            body = if (incomingChecklist) ChecklistFormat.encode(listOf(ChecklistItem(""))) else ""
+        )
+    )
 
     val uiState: StateFlow<EditorUiState> = combine(
         draft,
@@ -81,6 +91,10 @@ class EditorViewModel @Inject constructor(
 
     fun onTitleChange(value: String) = draft.update { it.copy(title = value) }
     fun onBodyChange(value: String) = draft.update { it.copy(body = value) }
+    fun checklistItems(): List<ChecklistItem> = ChecklistFormat.parse(draft.value.body)
+    fun onChecklistItemsChange(items: List<ChecklistItem>) {
+        draft.update { it.copy(body = ChecklistFormat.encode(items)) }
+    }
     fun onFolderChange(folderId: Long?) = draft.update { it.copy(folderId = folderId) }
     fun onColorChange(hex: String) = draft.update { it.copy(colorHex = hex) }
     fun onPinnedChange(pinned: Boolean) = draft.update { it.copy(isPinned = pinned) }
@@ -207,6 +221,7 @@ class EditorViewModel @Inject constructor(
         locationReminder = locationReminder,
         recurrence = if (reminderAt == null) Recurrence() else recurrence,
         attachments = attachments,
+        isChecklist = isChecklist,
         createdAt = if (isNew) now else createdAt,
         updatedAt = now
     )
@@ -226,6 +241,7 @@ class EditorViewModel @Inject constructor(
         locationReminder = locationReminder,
         recurrence = recurrence,
         attachments = attachments,
+        isChecklist = isChecklist,
         createdAt = createdAt,
         isNew = isNew
     )

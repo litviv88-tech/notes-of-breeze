@@ -26,9 +26,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.breez.notes.R
+import com.breez.notes.domain.model.ChecklistFormat
 import com.breez.notes.domain.model.Note
 import com.breez.notes.ui.components.BreezCard
 import com.breez.notes.ui.components.noteCardFill
@@ -101,7 +103,18 @@ fun NoteCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if (note.body.isNotBlank()) {
+                    if (note.isChecklist) {
+                        ChecklistFormat.preview(note.body).forEach { item ->
+                            Text(
+                                text = (if (item.done) "✓  " else "○  ") + item.text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textDecoration = if (item.done) TextDecoration.LineThrough else TextDecoration.None,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (item.done) 0.45f else 0.75f)
+                            )
+                        }
+                    } else if (note.body.isNotBlank()) {
                         Text(
                             text = note.body,
                             style = MaterialTheme.typography.bodyMedium,

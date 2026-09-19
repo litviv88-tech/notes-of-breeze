@@ -27,7 +27,7 @@ const I18N = {
     appearance: "Внешний вид",
     wallpaper: "Обои",
     about: "О приложении",
-    aboutText: "Breez Notes 1.2.0 — спокойные заметки с палитрами и обоями. Веб-версия хранит данные в этом браузере.",
+    aboutText: "Breez Notes 1.3.0 — спокойные заметки с палитрами и обоями. Веб-версия хранит данные в этом браузере.",
     save: "Сохранить",
     title: "Заголовок",
     body: "Текст заметки",
@@ -65,7 +65,14 @@ const I18N = {
     updateAvailableText: "Можно обновить прямо из приложения.",
     updateFailed: "Не удалось проверить обновление. Проверьте интернет.",
     currentVersion: "Текущая версия",
-    releasedVersion: "Вышла версия"
+    releasedVersion: "Вышла версия",
+    todoCreate: "Создать список дел",
+    todoCreateText: "Пункты можно вычёркивать",
+    todoTitle: "Список дел",
+    todoItem: "Дело",
+    todoAdd: "Добавить пункт",
+    folderCreate: "Создать папку",
+    folderCreateText: "Здесь хранятся заметки и списки дел"
   },
   en: {
     app: "Breez Notes",
@@ -95,7 +102,7 @@ const I18N = {
     appearance: "Appearance",
     wallpaper: "Wallpaper",
     about: "About",
-    aboutText: "Breez Notes 1.2.0 — calm notes with palettes and wallpapers. The web version stores data in this browser.",
+    aboutText: "Breez Notes 1.3.0 — calm notes with palettes and wallpapers. The web version stores data in this browser.",
     save: "Save",
     title: "Title",
     body: "Note text",
@@ -133,7 +140,14 @@ const I18N = {
     updateAvailableText: "You can update from inside the app.",
     updateFailed: "Could not check for updates. Check your internet connection.",
     currentVersion: "Current version",
-    releasedVersion: "Released version"
+    releasedVersion: "Released version",
+    todoCreate: "Create to-do list",
+    todoCreateText: "Check items off as you go",
+    todoTitle: "To-do list",
+    todoItem: "Task",
+    todoAdd: "Add item",
+    folderCreate: "Create folder",
+    folderCreateText: "Notes and to-do lists live here"
   }
 };
 
@@ -169,10 +183,10 @@ const WALLS = [
 
 const KEY = "breez-web-v2";
 const LEGACY_KEYS = ["breez-web-v1", "breez-notes"];
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const APK = "./downloads/BreezNotes.apk";
-const WEB_VERSION = 5;
-const APP_VERSION = "1.2.0";
+const WEB_VERSION = 7;
+const APP_VERSION = "1.3.0";
 
 let waitingWorker = null;
 let updateInfo = {
@@ -244,6 +258,7 @@ function normalizeNote(note, index) {
     folderId: note?.folderId ?? null,
     colorHex: note?.colorHex || "#4A90E2",
     pinned: !!(note?.pinned || note?.isPinned),
+    isChecklist: !!note?.isChecklist,
     sortOrder: Number.isFinite(note?.sortOrder) ? note.sortOrder : (index ?? 0),
     reminderAt: note?.reminderAt ?? null,
     meetingPlace: note?.meetingPlace || "",
@@ -263,12 +278,9 @@ function normalizeNote(note, index) {
 
 function migrateState(raw) {
   const data = raw && typeof raw === "object" ? raw : {};
-  const version = Number(data.schemaVersion) || 0;
   const next = { ...seed(), ...data };
-  if (version < 1) {
-    next.folders = (data.folders || next.folders || []).map(normalizeFolder);
-    next.notes = (data.notes || next.notes || []).map(normalizeNote);
-  }
+  next.folders = (data.folders || next.folders || []).map(normalizeFolder);
+  next.notes = (data.notes || next.notes || []).map(normalizeNote);
   next.schemaVersion = SCHEMA_VERSION;
   return next;
 }
@@ -299,6 +311,7 @@ function loadState() {
 let state = loadState();
 let route = location.hash.replace("#", "") || "home";
 let editorId = null;
+let editorChecklist = false;
 let folderId = null;
 let query = "";
 let selectedFolder = null;
@@ -368,7 +381,15 @@ function filteredNotes() {
 
 function go(name, extra) {
   route = name;
-  if (name === "editor") editorId = extra ?? null;
+  if (name === "editor") {
+    if (extra && typeof extra === "object") {
+      editorId = extra.id ?? null;
+      editorChecklist = !!extra.checklist;
+    } else {
+      editorId = extra ?? null;
+      editorChecklist = false;
+    }
+  }
   if (name === "folder") folderId = extra ?? null;
   location.hash = name === "home" ? "" : name;
   render();
@@ -380,6 +401,35 @@ function noteById(id) {
 
 function folderCount(id) {
   return state.notes.filter((n) => n.folderId === id).length;
+}
+
+function parseChecklist(body) {
+  const lines = String(body || "").split("\n");
+  if (!lines.some((line) => line.trim())) return [{ text: "", done: false }];
+  return lines.map((line) => {
+    const trimmed = line.trim();
+    if (/^(?:[-*•]\s*)?\[(?:x|X|✓)\]\s*/.test(trimmed)) {
+      return { text: trimmed.replace(/^(?:[-*•]\s*)?\[(?:x|X|✓)\]\s*/, ""), done: true };
+    }
+    if (/^(?:[-*•]\s*)?\[\s*\]\s*/.test(trimmed)) {
+      return { text: trimmed.replace(/^(?:[-*•]\s*)?\[\s*\]\s*/, ""), done: false };
+    }
+    return { text: trimmed.replace(/^[-*•]\s+/, ""), done: false };
+  });
+}
+
+function encodeChecklist(items) {
+  const source = items.length ? items : [{ text: "", done: false }];
+  return source.map((item) => `- [${item.done ? "x" : " "}] ${item.text}`).join("\n");
+}
+
+function collectNoteBody() {
+  const rows = [...document.querySelectorAll("[data-todo-row]")];
+  if (!rows.length) return document.getElementById("note-body")?.value || "";
+  return encodeChecklist(rows.map((row) => ({
+    text: row.querySelector("[data-todo-text]")?.value || "",
+    done: Boolean(row.querySelector("[data-todo-done]")?.checked)
+  })));
 }
 
 function hsvToHex(h, s, v) {
@@ -448,47 +498,58 @@ function renderLanding() {
 function renderNotes() {
   const notes = filteredNotes();
   return appScreen(`
-    <div class="download-bar">
-      <span>${t("app")}</span>
-      <a class="btn secondary" href="${APK}" download="BreezNotes.apk">${t("download")}</a>
-    </div>
     <div class="app-top">
       <div class="brand">${t("notes")}</div>
-      <div class="actions">
-        <button class="icon-btn" data-go="folders">📁</button>
-        <button class="icon-btn" data-go="theme">🎨</button>
-        <button class="icon-btn" data-go="wallpaper">🖼</button>
-        <button class="icon-btn" data-go="settings">⚙</button>
-      </div>
+      <button class="icon-btn" data-new>+</button>
     </div>
     <div class="search-wrap"><input class="search" id="search" placeholder="${t("search")}" value="${escapeHtml(query)}"></div>
     <div class="chips">
       <button class="chip ${selectedFolder ? "" : "active"}" data-folder="">${t("all")}</button>
       ${state.folders.map((f) => `<button class="chip ${selectedFolder === f.id ? "active" : ""}" data-folder="${escapeHtml(f.id)}"><span class="chip-mark" style="background:${escapeHtml(f.colorHex || "#7ED9C4")}"></span>${escapeHtml(f.name)}</button>`).join("")}
     </div>
-    ${notes.length === 0 ? `<div class="empty">${t("empty")}</div>` : `<div class="list">${notes.map((n) => `
-      <article class="note" data-open="${escapeHtml(n.id)}">
-        <div class="note-stripe" style="background:${escapeHtml(n.colorHex || "#4A90E2")}"></div>
-        <div class="note-body">
-          <h3>${n.pinned ? "📌 " : ""}${escapeHtml(n.title || t("untitled"))}</h3>
-          <p>${escapeHtml(n.body || "")}</p>
-        </div>
-        <button class="pin" data-pin="${escapeHtml(n.id)}">${n.pinned ? "★" : "☆"}</button>
-      </article>`).join("")}</div>`}
-    <button class="fab" data-new>+</button>`);
+    <div class="notes-main">
+      ${notes.length === 0 ? `<div class="empty">${t("empty")}</div>` : `<div class="list">${notes.map((n) => `
+        <article class="note" data-open="${escapeHtml(n.id)}">
+          <div class="note-stripe" style="background:${escapeHtml(n.colorHex || "#4A90E2")}"></div>
+          <div class="note-body">
+            <h3>${n.pinned ? "📌 " : ""}${escapeHtml(n.title || t("untitled"))}</h3>
+            ${n.isChecklist ? parseChecklist(n.body).filter((item) => item.text).slice(0, 3).map((item) => `<p class="${item.done ? "todo-done" : ""}">${item.done ? "✓" : "○"} ${escapeHtml(item.text)}</p>`).join("") : `<p>${escapeHtml(n.body || "")}</p>`}
+          </div>
+          <button class="pin" data-pin="${escapeHtml(n.id)}">${n.pinned ? "★" : "☆"}</button>
+        </article>`).join("")}</div>`}
+    </div>
+    <div class="home-dock">
+      <div class="settings-item" data-new-todo><div><b>${t("todoCreate")}</b><div>${t("todoCreateText")}</div></div><span>›</span></div>
+      <div class="settings-item" id="add-folder"><div><b>${t("folderCreate")}</b><div>${t("folderCreateText")}</div></div><span>›</span></div>
+      <div class="settings-item" data-go="theme"><div><b>${t("appearance")}</b></div><span>›</span></div>
+      <div class="settings-item" data-go="wallpaper"><div><b>${t("wallpaper")}</b></div><span>›</span></div>
+      <div class="chips" style="padding:8px 0">
+        <button class="chip ${state.themeMode === "LIGHT" ? "active" : ""}" data-mode="LIGHT">${t("light")}</button>
+        <button class="chip ${state.themeMode === "DARK" ? "active" : ""}" data-mode="DARK">${t("dark")}</button>
+      </div>
+      ${renderUpdateSettings()}
+    </div>`);
 }
 
 function renderEditor() {
-  const note = editorId ? noteById(editorId) : { title: "", body: "", folderId: selectedFolder, colorHex: currentHex(), pinned: false };
+  const existing = editorId ? noteById(editorId) : null;
+  const isChecklist = existing ? !!existing.isChecklist : editorChecklist;
+  const note = existing || { title: "", body: isChecklist ? "- [ ] " : "", folderId: selectedFolder, colorHex: currentHex(), pinned: false, isChecklist };
+  const items = parseChecklist(note.body);
   return appScreen(`
     <div class="app-top">
       <button class="icon-btn" data-go="notes">←</button>
-      <strong>${t("save")}</strong>
+      <strong>${isChecklist ? t("todoTitle") : t("save")}</strong>
       <button class="btn" id="save-note">${t("save")}</button>
     </div>
     <div class="editor">
       <input class="field title-input" id="note-title" placeholder="${t("title")}" value="${escapeHtml(note.title || "")}">
-      <textarea class="field body-input" id="note-body" placeholder="${t("body")}">${escapeHtml(note.body || "")}</textarea>
+      ${isChecklist ? `<div id="todo-list">${items.map((item, index) => `
+        <label class="todo-row" data-todo-row>
+          <input type="checkbox" data-todo-done ${item.done ? "checked" : ""}>
+          <input class="field ${item.done ? "todo-done" : ""}" data-todo-text placeholder="${t("todoItem")}" value="${escapeHtml(item.text)}">
+        </label>`).join("")}</div>
+        <button class="btn secondary" id="add-todo-item">${t("todoAdd")}</button>` : `<textarea class="field body-input" id="note-body" placeholder="${t("body")}">${escapeHtml(note.body || "")}</textarea>`}
       <label>${t("folder")}</label>
       <select class="field" id="note-folder">
         <option value="">${t("noFolder")}</option>
@@ -754,7 +815,8 @@ function handleAppClick(event) {
   }
   const open = closestAction(target, "[data-open]");
   if (open) {
-    go("editor", open.dataset.open);
+    const note = noteById(open.dataset.open);
+    go("editor", { id: open.dataset.open, checklist: !!note?.isChecklist });
     return;
   }
   const goEl = closestAction(target, "[data-go]");
@@ -809,12 +871,16 @@ function handleAppClick(event) {
     render();
     return;
   }
+  if (closestAction(target, "[data-new-todo]")) {
+    go("editor", { id: null, checklist: true });
+    return;
+  }
   if (closestAction(target, "[data-new]")) {
-    go("editor", null);
+    go("editor", { id: null, checklist: false });
     return;
   }
 
-  const id = closestAction(target, "button, a")?.id;
+  const id = closestAction(target, "button, a, #add-folder")?.id;
   if (id === "save-note") saveNote();
   else if (id === "delete-note") {
     state.notes = state.notes.filter((n) => n.id !== editorId);
@@ -822,8 +888,11 @@ function handleAppClick(event) {
     go("notes");
   } else if (id === "toggle-pin") {
     const title = document.getElementById("note-title")?.value || "";
-    const body = document.getElementById("note-body")?.value || "";
-    persistDraft(title, body, true);
+    persistDraft(title, collectNoteBody(), true);
+    render();
+  } else if (id === "add-todo-item") {
+    persistDraft(document.getElementById("note-title")?.value || "", `${collectNoteBody()}\n- [ ] `, false);
+    editorChecklist = true;
     render();
   } else if (id === "add-folder") openFolderDialog();
   else if (id === "delete-folder") {
@@ -909,8 +978,9 @@ function openFolderDialog() {
 }
 
 function persistDraft(title, body, flipPin) {
-  const folderSel = document.getElementById("note-folder").value || null;
-  const colorHex = document.getElementById("note-color").value;
+  const folderSel = document.getElementById("note-folder")?.value || null;
+  const colorHex = document.getElementById("note-color")?.value || currentHex();
+  const isChecklist = Boolean(document.getElementById("todo-list") || editorChecklist);
   if (editorId) {
     const note = noteById(editorId);
     if (!note) return;
@@ -921,6 +991,7 @@ function persistDraft(title, body, flipPin) {
       folderId: folderSel,
       colorHex,
       pinned: flipPin ? !note.pinned : note.pinned,
+      isChecklist,
       updatedAt: Date.now()
     }));
   } else {
@@ -931,22 +1002,23 @@ function persistDraft(title, body, flipPin) {
       folderId: folderSel,
       colorHex,
       pinned: Boolean(flipPin),
+      isChecklist,
       updatedAt: Date.now()
     });
     state.notes.unshift(created);
     editorId = created.id;
   }
+  editorChecklist = isChecklist;
   save();
 }
 
 function saveNote() {
   const titleEl = document.getElementById("note-title");
-  const bodyEl = document.getElementById("note-body");
-  if (!titleEl || !bodyEl) {
+  if (!titleEl) {
     go("notes");
     return;
   }
-  persistDraft(titleEl.value, bodyEl.value, false);
+  persistDraft(titleEl.value, collectNoteBody(), false);
   go("notes");
 }
 

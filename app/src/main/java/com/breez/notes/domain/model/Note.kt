@@ -15,6 +15,7 @@ data class Note(
     val locationReminder: Boolean = false,
     val recurrence: Recurrence = Recurrence(),
     val attachments: List<NoteAttachment> = emptyList(),
+    val isChecklist: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 ) {
@@ -25,7 +26,8 @@ data class Note(
             body.isNotBlank() ||
             meetingPlace.isNotBlank() ||
             attachments.isNotEmpty() ||
-            reminderAt != null
+            reminderAt != null ||
+            (isChecklist && ChecklistFormat.preview(body).isNotEmpty())
 
     companion object {
         const val DEFAULT_NOTE_COLOR = "#4A90E2"

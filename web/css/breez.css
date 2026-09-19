@@ -315,6 +315,28 @@ img { max-width: 100%; }
   display: flex;
   flex-direction: column;
 }
+.notes-main {
+  flex: 1;
+  min-height: 140px;
+  overflow: auto;
+}
+.notes-main .list { padding-bottom: 16px; }
+.home-dock {
+  flex-shrink: 0;
+  padding: 0 20px 8px;
+}
+.home-dock .update-settings {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.todo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.todo-row .field { flex: 1; }
+.todo-done { text-decoration: line-through; opacity: 0.55; }
 .mode-grid, .palette-grid, .wall-grid { display: grid; gap: 8px; }
 .mode-grid { grid-template-columns: 1fr 1fr; }
 .palette-grid { grid-template-columns: repeat(4, 1fr); }

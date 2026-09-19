@@ -3,7 +3,7 @@
 Android-приложение для заметок: папки, темы, обои и виджеты на рабочем столе.
 
 Пакет: `com.breez.notes`  
-Min SDK 26 · Target / Compile SDK 35 · Версия 1.2.0
+Min SDK 26 · Target / Compile SDK 35 · Версия 1.3.0
 
 ## Документация
 

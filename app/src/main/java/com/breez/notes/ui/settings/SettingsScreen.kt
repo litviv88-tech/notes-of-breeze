@@ -115,7 +115,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun UpdateSettingsBlock(
+fun UpdateSettingsBlock(
     state: AppUpdateState,
     onCheckUpdate: () -> Unit,
     onStartUpdate: () -> Unit,

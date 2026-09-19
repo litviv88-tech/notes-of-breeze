@@ -32,25 +32,42 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      - name: Проверить, что version.json совпадает с Gradle
+        run: |
+          CODE=$(sed -n 's/^appVersionCode = "\(.*\)"/\1/p' gradle/libs.versions.toml)
+          NAME=$(sed -n 's/^appVersionName = "\(.*\)"/\1/p' gradle/libs.versions.toml)
+          python3 - <<PY
+          import json
+          from pathlib import Path
+          data = json.loads(Path("web/version.json").read_text(encoding="utf-8"))
+          code, name = "$CODE", "$NAME"
+          assert str(data["versionCode"]) == code, f"versionCode {data['versionCode']} != {code}"
+          assert data["versionName"] == name, f"versionName {data['versionName']} != {name}"
+          print(f"APK {name} ({code}), webVersion {data['webVersion']}")
+          PY
+
       - name: Собрать APK
-        continue-on-error: true
         run: |
           chmod +x gradlew
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          for manager in \
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          do
+            if [ -x "$manager" ]; then
+              yes | "$manager" --licenses >/dev/null 2>&1 || true
+              break
+            fi
+          done
           ./gradlew assembleDebug --no-daemon
 
       - name: Подготовить сайт
         run: |
           mkdir -p web/downloads
           APK="$(find . -name 'app-debug.apk' | head -n 1)"
-          if [ -n "$APK" ]; then
-            cp "$APK" web/downloads/BreezNotes.apk
-          else
-            curl -fsSL -o web/downloads/BreezNotes.apk \
-              "https://litviv88-tech.github.io/notes-of-breeze/downloads/BreezNotes.apk"
-          fi
-          test -f web/downloads/BreezNotes.apk
+          test -n "$APK"
+          cp "$APK" web/downloads/BreezNotes.apk
+          test -s web/downloads/BreezNotes.apk
           test -f web/version.json
 
       - name: Опубликовать GitHub Pages

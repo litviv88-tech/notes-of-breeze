@@ -76,10 +76,13 @@ fun NavGraph(
                 NotesScreen(
                     onOpenNote = { id -> navController.navigate(Routes.Editor.create(id)) },
                     onCreateNote = { navController.navigate(Routes.Editor.create()) },
+                    onCreateTodo = { navController.navigate(Routes.Editor.create(checklist = true)) },
                     onOpenFolders = { navController.navigate(Routes.Folders.route) },
                     onOpenTheme = { navController.navigate(Routes.ThemePicker.route) },
                     onOpenWallpaper = { navController.navigate(Routes.WallpaperPicker.route) },
-                    onOpenSettings = { navController.navigate(Routes.Settings.route) }
+                    updateState = updateState,
+                    onCheckUpdate = updateViewModel::checkForUpdate,
+                    onStartUpdate = updateViewModel::startUpdate
                 )
             }
             composable(
@@ -88,6 +91,10 @@ fun NavGraph(
                     navArgument("noteId") {
                         type = NavType.LongType
                         defaultValue = -1L
+                    },
+                    navArgument("checklist") {
+                        type = NavType.IntType
+                        defaultValue = 0
                     }
                 )
             ) {

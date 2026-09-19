@@ -66,7 +66,11 @@ class VideoClipper @Inject constructor(
         val extractor = MediaExtractor()
         val muxer = MediaMuxer(dest.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
         try {
-            extractor.setDataSource(context, source, null)
+            if (source.scheme == "file") {
+                extractor.setDataSource(requireNotNull(source.path))
+            } else {
+                extractor.setDataSource(context, source, null)
+            }
             val indexMap = HashMap<Int, Int>()
             var maxInput = 0
             var rotation = 0

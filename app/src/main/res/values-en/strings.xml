@@ -10,7 +10,13 @@
     <string name="notes_search">Search</string>
     <string name="note_untitled">Untitled</string>
     <string name="note_pinned">Pinned</string>
-    <string name="note_add">New note</string>
+    <string name="todo_create">Create to-do list</string>
+    <string name="todo_create_subtitle">Check items off as you go</string>
+    <string name="todo_editor_title">To-do list</string>
+    <string name="todo_item_hint">Task</string>
+    <string name="todo_add_item">Add item</string>
+    <string name="folder_create_home">Create folder</string>
+    <string name="folder_create_home_subtitle">Notes and to-do lists live here</string>
     <string name="note_delete">Delete note</string>
     <string name="note_deleted">Note deleted</string>
     <string name="note_pin">Pin</string>
@@ -69,9 +75,9 @@
     <string name="settings_web">Web notes</string>
     <string name="settings_web_subtitle">JS version that saves into the app and widget</string>
     <string name="settings_about">About</string>
-    <string name="settings_about_subtitle">Breez Notes 1.2.0</string>
+    <string name="settings_about_subtitle">Breez Notes 1.3.0</string>
     <string name="about_title">About</string>
-    <string name="about_version">Version 1.2.0</string>
+    <string name="about_version">Version 1.3.0</string>
     <string name="update_title">Update</string>
     <string name="update_current">Current version: %1$s</string>
     <string name="update_released">Released version: %1$s</string>

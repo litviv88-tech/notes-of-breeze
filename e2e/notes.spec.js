@@ -3,7 +3,7 @@ const { test, expect } = require("@playwright/test");
 async function openNotes(page) {
   await page.addInitScript(() => localStorage.clear());
   await page.goto("/#notes");
-  await expect(page.locator(".fab")).toBeVisible();
+  await expect(page.locator("[data-new]")).toBeVisible();
 }
 
 async function expectWallpaperCoversViewport(page) {
@@ -43,7 +43,7 @@ test.describe("Breez Notes e2e", () => {
 
   test("создание, поиск и закрепление заметки", async ({ page }) => {
     await openNotes(page);
-    await page.locator(".fab").click();
+    await page.locator("[data-new]").click();
     await page.locator("#note-title").fill("E2E заголовок");
     await page.locator("#note-body").fill("E2E текст заметки");
     await page.locator("#save-note").click();
@@ -62,21 +62,19 @@ test.describe("Breez Notes e2e", () => {
 
   test("создание папки", async ({ page }) => {
     await openNotes(page);
-    await page.locator("[data-go=folders]").click();
     await page.locator("#add-folder").click();
     await page.locator("#folder-name").fill("E2E папка");
     await page.locator("#create-folder").click();
-    await expect(page.locator(".folder-card h3", { hasText: "E2E папка" })).toBeVisible();
+    await expect(page.locator(".chip", { hasText: "E2E папка" })).toBeVisible();
   });
 
   test("настройки показывают текущую и вышедшую версию", async ({ page }) => {
     await openNotes(page);
-    await page.locator("[data-go=settings]").click();
     await expect(page.locator("text=Текущая версия")).toBeVisible();
-    await expect(page.locator(".update-version-row").first()).toContainText("1.1");
+    await expect(page.locator(".update-version-row").first()).toContainText("1.3.0");
     await expect.poll(async () => {
       return page.locator(".update-version-row").nth(1).innerText();
-    }).toContain("1.1");
+    }).toContain("1.3.0");
     await expectWallpaperCoversViewport(page);
   });
 
