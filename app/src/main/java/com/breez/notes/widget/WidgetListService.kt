@@ -40,9 +40,10 @@ class WidgetListFactory(
                 context.applicationContext,
                 WidgetEntryPoint::class.java
             )
+            val kind = WidgetKinds.of(context, appWidgetId)
             config = entry.widgetRepository().getByAppWidgetId(appWidgetId)
-                ?: WidgetConfig.default(appWidgetId)
-            WidgetData.buildRows(WidgetData.loadNotes(entry, config), config)
+                ?: defaultWidgetConfig(appWidgetId, kind)
+            WidgetData.buildRows(WidgetData.loadNotes(entry, config, kind), config, kind)
         }
     }
 

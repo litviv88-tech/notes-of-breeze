@@ -3,6 +3,12 @@
     <string name="app_name">Breez Notes</string>
     <string name="widget_name">Breez Notes</string>
     <string name="widget_description">Live notes on your home screen</string>
+    <string name="todo_widget_name">To-do list</string>
+    <string name="todo_widget_description">To-do lists with scroll and strike-through</string>
+    <string name="todo_widget_empty">No to-do lists yet. Create one in the app.</string>
+    <string name="todo_widget_config_title">To-do widget</string>
+    <string name="todo_widget_max_lists">Number of lists</string>
+    <string name="todo_widget_preview_hint">☐ Buy milk\n☑ Call mom\n☐ Send report</string>
 
     <string name="notes_title">Notes</string>
     <string name="notes_empty">No notes yet.\nTap + to create the first one.</string>

@@ -13,7 +13,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class BreezWidgetReceiver : AppWidgetProvider() {
+/**
+ * Отдельный виджет списка дел: скролл пунктов и вычёркивание по нажатию.
+ */
+class TodoWidgetReceiver : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         appWidgetIds.forEach { id -> updateWidget(context, appWidgetManager, id) }
@@ -51,19 +54,15 @@ class BreezWidgetReceiver : AppWidgetProvider() {
         WidgetClickHandler.handle(
             context = context,
             appWidgetId = appWidgetId,
-            noteId = intent.getLongExtra(EXTRA_NOTE_ID, -1L),
-            lineIndex = intent.getIntExtra(EXTRA_LINE_INDEX, 0),
-            toggleable = intent.getBooleanExtra(EXTRA_TOGGLEABLE, false),
-            done = intent.getBooleanExtra(EXTRA_DONE, false)
+            noteId = intent.getLongExtra(BreezWidgetReceiver.EXTRA_NOTE_ID, -1L),
+            lineIndex = intent.getIntExtra(BreezWidgetReceiver.EXTRA_LINE_INDEX, 0),
+            toggleable = intent.getBooleanExtra(BreezWidgetReceiver.EXTRA_TOGGLEABLE, false),
+            done = intent.getBooleanExtra(BreezWidgetReceiver.EXTRA_DONE, false)
         )
     }
 
     companion object {
-        const val ACTION_ITEM_CLICK = "com.breez.notes.widget.ITEM_CLICK"
-        const val EXTRA_NOTE_ID = "extra_note_id"
-        const val EXTRA_LINE_INDEX = "extra_line_index"
-        const val EXTRA_TOGGLEABLE = "extra_toggleable"
-        const val EXTRA_DONE = "extra_done"
+        const val ACTION_ITEM_CLICK = "com.breez.notes.widget.TODO_ITEM_CLICK"
 
         private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -73,12 +72,12 @@ class BreezWidgetReceiver : AppWidgetProvider() {
                     WidgetRemoteViews.build(
                         context = context,
                         appWidgetId = appWidgetId,
-                        clickReceiver = BreezWidgetReceiver::class.java,
+                        clickReceiver = TodoWidgetReceiver::class.java,
                         clickAction = ACTION_ITEM_CLICK,
-                        emptyTextRes = R.string.widget_preview_empty
+                        emptyTextRes = R.string.todo_widget_empty
                     )
                 }.getOrElse {
-                    WidgetRemoteViews.fallback(context, R.string.widget_preview_empty)
+                    WidgetRemoteViews.fallback(context, R.string.todo_widget_empty)
                 }
                 appWidgetManager.updateAppWidget(appWidgetId, views)
                 appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_list)

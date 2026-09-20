@@ -7,7 +7,11 @@ import com.breez.notes.domain.model.WidgetDisplayMode
 import com.breez.notes.domain.model.WidgetSourceType
 
 object WidgetData {
-    suspend fun loadNotes(entry: WidgetEntryPoint, config: WidgetConfig): List<Note> {
+    suspend fun loadNotes(
+        entry: WidgetEntryPoint,
+        config: WidgetConfig,
+        kind: WidgetKind = WidgetKind.NOTES
+    ): List<Note> {
         val repo = entry.noteRepository()
         val all = when (config.sourceType) {
             WidgetSourceType.ALL -> repo.getAll()
@@ -20,11 +24,31 @@ object WidgetData {
                 if (noteId == null) emptyList() else listOfNotNull(repo.getById(noteId))
             }
         }
-        return all.filter { !it.isArchived }.take(config.maxNotes.coerceIn(1, 5))
+        val active = all.filter { !it.isArchived }
+        val scoped = if (kind == WidgetKind.TODO) {
+            active.filter { it.isChecklist }
+        } else {
+            active
+        }
+        val limit = if (kind == WidgetKind.TODO) {
+            config.maxNotes.coerceIn(1, 8)
+        } else {
+            config.maxNotes.coerceIn(1, 5)
+        }
+        return scoped.take(limit)
     }
 
-    fun buildRows(notes: List<Note>, config: WidgetConfig): List<WidgetRow> {
-        val rows = when (config.displayMode) {
+    fun buildRows(
+        notes: List<Note>,
+        config: WidgetConfig,
+        kind: WidgetKind = WidgetKind.NOTES
+    ): List<WidgetRow> {
+        val mode = if (kind == WidgetKind.TODO) {
+            WidgetDisplayMode.CHECKLIST
+        } else {
+            config.displayMode
+        }
+        val rows = when (mode) {
             WidgetDisplayMode.TITLE -> notes.map { note ->
                 WidgetRow(
                     id = note.id,

@@ -133,7 +133,14 @@ private fun WidgetConfigRoute(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Transparent,
-        topBar = { BreezTopBar(title = stringResource(R.string.widget_config_title), transparent = true) },
+        topBar = {
+            BreezTopBar(
+                title = stringResource(
+                    if (state.isTodoWidget) R.string.todo_widget_config_title else R.string.widget_config_title
+                ),
+                transparent = true
+            )
+        },
         bottomBar = {
             BreezButton(
                 text = stringResource(R.string.widget_done),
@@ -177,8 +184,14 @@ private fun WidgetConfigRoute(
             Spacer(Modifier.height(12.dp))
             BreezWidgetLivePreview(
                 notes = state.previewNotes,
-                config = state.config,
-                emptyLabel = stringResource(R.string.widget_preview_empty),
+                config = if (state.isTodoWidget) {
+                    state.config.copy(displayMode = WidgetDisplayMode.CHECKLIST)
+                } else {
+                    state.config
+                },
+                emptyLabel = stringResource(
+                    if (state.isTodoWidget) R.string.todo_widget_empty else R.string.widget_preview_empty
+                ),
                 onPhotoTransform = viewModel::setPhotoTransform
             )
             if (!state.config.backgroundUri.isNullOrBlank()) {
@@ -272,28 +285,34 @@ private fun WidgetConfigRoute(
                     valueRange = 10f..24f,
                     steps = 13
                 )
-                Text(stringResource(R.string.widget_display_mode), style = MaterialTheme.typography.titleMedium)
-                SourceRow(
-                    selected = state.config.displayMode == WidgetDisplayMode.TITLE,
-                    label = stringResource(R.string.widget_mode_title),
-                    onClick = { viewModel.setDisplayMode(WidgetDisplayMode.TITLE) }
+                if (!state.isTodoWidget) {
+                    Text(stringResource(R.string.widget_display_mode), style = MaterialTheme.typography.titleMedium)
+                    SourceRow(
+                        selected = state.config.displayMode == WidgetDisplayMode.TITLE,
+                        label = stringResource(R.string.widget_mode_title),
+                        onClick = { viewModel.setDisplayMode(WidgetDisplayMode.TITLE) }
+                    )
+                    SourceRow(
+                        selected = state.config.displayMode == WidgetDisplayMode.FULL,
+                        label = stringResource(R.string.widget_mode_full),
+                        onClick = { viewModel.setDisplayMode(WidgetDisplayMode.FULL) }
+                    )
+                    SourceRow(
+                        selected = state.config.displayMode == WidgetDisplayMode.CHECKLIST,
+                        label = stringResource(R.string.widget_mode_checklist),
+                        onClick = { viewModel.setDisplayMode(WidgetDisplayMode.CHECKLIST) }
+                    )
+                }
+                Text(
+                    stringResource(
+                        if (state.isTodoWidget) R.string.todo_widget_max_lists else R.string.widget_max_notes
+                    )
                 )
-                SourceRow(
-                    selected = state.config.displayMode == WidgetDisplayMode.FULL,
-                    label = stringResource(R.string.widget_mode_full),
-                    onClick = { viewModel.setDisplayMode(WidgetDisplayMode.FULL) }
-                )
-                SourceRow(
-                    selected = state.config.displayMode == WidgetDisplayMode.CHECKLIST,
-                    label = stringResource(R.string.widget_mode_checklist),
-                    onClick = { viewModel.setDisplayMode(WidgetDisplayMode.CHECKLIST) }
-                )
-                Text(stringResource(R.string.widget_max_notes))
                 Slider(
                     value = state.config.maxNotes.toFloat(),
                     onValueChange = { viewModel.setMaxNotes(it.toInt()) },
-                    valueRange = 1f..5f,
-                    steps = 3
+                    valueRange = 1f..(if (state.isTodoWidget) 8f else 5f),
+                    steps = if (state.isTodoWidget) 6 else 3
                 )
                 Text(stringResource(R.string.widget_corner_radius))
                 Slider(

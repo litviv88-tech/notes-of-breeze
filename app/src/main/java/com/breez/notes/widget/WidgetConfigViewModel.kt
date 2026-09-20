@@ -29,7 +29,8 @@ data class WidgetConfigUiState(
     val config: WidgetConfig = WidgetConfig.default(0),
     val notes: List<Note> = emptyList(),
     val folders: List<Folder> = emptyList(),
-    val previewNotes: List<Note> = emptyList()
+    val previewNotes: List<Note> = emptyList(),
+    val isTodoWidget: Boolean = false
 )
 
 @HiltViewModel
@@ -41,29 +42,43 @@ class WidgetConfigViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val configState = MutableStateFlow(WidgetConfig.default(0))
+    private val kindState = MutableStateFlow(WidgetKind.NOTES)
 
     val uiState: StateFlow<WidgetConfigUiState> = combine(
         configState,
+        kindState,
         noteRepository.observeAll(),
         folderRepository.observeAll()
-    ) { config, notes, folders ->
+    ) { config, kind, notes, folders ->
+        val scopedNotes = if (kind == WidgetKind.TODO) {
+            notes.filter { it.isChecklist && !it.isArchived }
+        } else {
+            notes.filter { !it.isArchived }
+        }
         val preview = when (config.sourceType) {
-            WidgetSourceType.ALL -> notes
-            WidgetSourceType.FOLDER -> notes.filter { it.folderId == config.folderId }
-            WidgetSourceType.NOTE -> notes.filter { it.id == config.noteId }
-        }.take(config.maxNotes.coerceIn(1, 5))
+            WidgetSourceType.ALL -> scopedNotes
+            WidgetSourceType.FOLDER -> scopedNotes.filter { it.folderId == config.folderId }
+            WidgetSourceType.NOTE -> scopedNotes.filter { it.id == config.noteId }
+        }.take(config.maxNotes.coerceIn(1, if (kind == WidgetKind.TODO) 8 else 5))
         WidgetConfigUiState(
-            config = config,
-            notes = notes,
+            config = if (kind == WidgetKind.TODO) {
+                config.copy(displayMode = WidgetDisplayMode.CHECKLIST)
+            } else {
+                config
+            },
+            notes = scopedNotes,
             folders = folders,
-            previewNotes = preview
+            previewNotes = preview,
+            isTodoWidget = kind == WidgetKind.TODO
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WidgetConfigUiState())
 
     fun bind(appWidgetId: Int) {
         viewModelScope.launch {
+            val kind = WidgetKinds.of(context, appWidgetId)
+            kindState.value = kind
             val existing = widgetRepository.getByAppWidgetId(appWidgetId)
-            configState.value = existing ?: WidgetConfig.default(appWidgetId).copy(
+            configState.value = existing ?: defaultWidgetConfig(appWidgetId, kind).copy(
                 cellWidth = placedWidth(appWidgetId),
                 cellHeight = placedHeight(appWidgetId)
             )
@@ -89,7 +104,10 @@ class WidgetConfigViewModel @Inject constructor(
     fun setTextColor(hex: String) = update { it.copy(textColorHex = hex) }
     fun setFontSize(sp: Int) = update { it.copy(fontSizeSp = sp.coerceIn(10, 24)) }
     fun setDisplayMode(mode: WidgetDisplayMode) = update { it.copy(displayMode = mode) }
-    fun setMaxNotes(count: Int) = update { it.copy(maxNotes = count.coerceIn(1, 5)) }
+    fun setMaxNotes(count: Int) = update {
+        val max = if (kindState.value == WidgetKind.TODO) 8 else 5
+        it.copy(maxNotes = count.coerceIn(1, max))
+    }
     fun setCornerRadius(dp: Int) = update { it.copy(cornerRadiusDp = dp.coerceIn(0, 32)) }
 
     fun setCellWidth(width: Int) = update {
@@ -114,7 +132,14 @@ class WidgetConfigViewModel @Inject constructor(
 
     fun save(onSaved: () -> Unit) {
         viewModelScope.launch {
-            val config = configState.value
+            val kind = kindState.value
+            val config = configState.value.let { raw ->
+                if (kind == WidgetKind.TODO) {
+                    raw.copy(displayMode = WidgetDisplayMode.CHECKLIST)
+                } else {
+                    raw
+                }
+            }
             withContext(Dispatchers.IO) {
                 if (!config.backgroundUri.isNullOrBlank()) {
                     WidgetBackgroundStore.renderCropped(context, config)
