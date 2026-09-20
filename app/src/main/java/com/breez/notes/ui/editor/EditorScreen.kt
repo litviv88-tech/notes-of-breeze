@@ -31,7 +31,6 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,12 +57,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.breez.notes.R
 import com.breez.notes.domain.model.ChecklistFormat
-import com.breez.notes.domain.model.ChecklistItem
 import com.breez.notes.domain.model.Folder
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -287,7 +284,7 @@ fun EditorScreen(
             )
             Spacer(Modifier.height(12.dp))
             if (state.isChecklist) {
-                ChecklistEditor(
+                AnimatedChecklistEditor(
                     items = ChecklistFormat.parse(state.body),
                     onChange = viewModel::onChecklistItemsChange
                 )
@@ -518,48 +515,6 @@ fun EditorScreen(
 }
 
 private enum class LocationAction { Current, Nearby }
-
-@Composable
-private fun ChecklistEditor(
-    items: List<ChecklistItem>,
-    onChange: (List<ChecklistItem>) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.forEachIndexed { index, item ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = item.done,
-                    onCheckedChange = { checked ->
-                        onChange(items.toMutableList().also { it[index] = item.copy(done = checked) })
-                    }
-                )
-                BreezTextField(
-                    value = item.text,
-                    onValueChange = { text ->
-                        onChange(items.toMutableList().also { it[index] = item.copy(text = text) })
-                    },
-                    hint = stringResource(R.string.todo_item_hint),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        textDecoration = if (item.done) TextDecoration.LineThrough else TextDecoration.None,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (item.done) 0.5f else 1f)
-                    )
-                )
-                if (items.size > 1) {
-                    BreezTextButton(
-                        text = "×",
-                        onClick = { onChange(items.toMutableList().also { it.removeAt(index) }) }
-                    )
-                }
-            }
-        }
-        BreezTextButton(
-            text = stringResource(R.string.todo_add_item),
-            onClick = { onChange(items + ChecklistItem("")) }
-        )
-    }
-}
 
 private fun locationPermissions(): Array<String> = buildList {
     add(Manifest.permission.ACCESS_FINE_LOCATION)

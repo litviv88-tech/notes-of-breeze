@@ -353,12 +353,95 @@ img { max-width: 100%; }
   padding-top: 8px;
 }
 .todo-row {
+  /* === Тайминги (регулируйте здесь) === */
+  --todo-check-ms: 320ms;      /* рисование галочки */
+  --todo-strike-ms: 320ms;     /* зачёркивание + затемнение текста */
+  --todo-hold-ms: 6000ms;      /* пауза до удаления (5–7 с) — см. JS TODO_HOLD_MS */
+  --todo-fade-ms: 1000ms;      /* blur + opacity */
+  --todo-collapse-ms: 420ms;   /* схлопывание высоты / сдвиг списка */
+  --todo-done-opacity: 0.45;   /* прозрачность выполненного текста */
+  --todo-ease: ease-in-out;
+
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 8px;
+  max-height: 72px;
+  overflow: hidden;
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--todo-fade-ms) var(--todo-ease),
+    filter var(--todo-fade-ms) var(--todo-ease),
+    max-height var(--todo-collapse-ms) var(--todo-ease),
+    margin var(--todo-collapse-ms) var(--todo-ease),
+    padding var(--todo-collapse-ms) var(--todo-ease);
 }
 .todo-row .field { flex: 1; }
+.todo-row.is-done .field {
+  text-decoration: line-through;
+  opacity: var(--todo-done-opacity);
+  transition:
+    opacity var(--todo-strike-ms) var(--todo-ease),
+    text-decoration-color var(--todo-strike-ms) var(--todo-ease);
+}
+.todo-row .field {
+  transition: opacity var(--todo-strike-ms) var(--todo-ease);
+}
+/* Фаза удаления: растворение + blur, затем схлопывание высоты */
+.todo-row.is-removing {
+  opacity: 0;
+  filter: blur(8px);
+  max-height: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  pointer-events: none;
+}
+
+/* Кастомный круглый чекбокс ≈ высота заглавной буквы */
+.todo-check-btn {
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  font-size: 1rem; /* совпадает с размером текста поля */
+}
+.todo-check-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+.todo-check {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+.todo-check-circle,
+.todo-check-mark {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Аналог SVG stroke-dashoffset: pathLength=1 → offset 1→0 */
+.todo-check-mark {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset var(--todo-check-ms) var(--todo-ease);
+}
+.todo-row.is-done .todo-check-mark {
+  stroke-dashoffset: 0;
+}
+
 .todo-done { text-decoration: line-through; opacity: 0.55; }
 .mode-grid, .palette-grid, .wall-grid { display: grid; gap: 8px; }
 .mode-grid { grid-template-columns: 1fr 1fr; }

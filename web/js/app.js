@@ -461,12 +461,85 @@ function encodeChecklist(items) {
   return source.map((item) => `- [${item.done ? "x" : " "}] ${item.text}`).join("\n");
 }
 
+/** Тайминги удаления (должны совпадать с CSS --todo-* ). */
+const TODO_CHECK_MS = 320;
+const TODO_HOLD_MS = 6000;       // пауза 5–7 с, по умолчанию 6 с
+const TODO_FADE_MS = 1000;       // blur + opacity
+const TODO_COLLAPSE_MS = 420;    // схлопывание высоты
+
+function todoRowHtml(item) {
+  const doneClass = item.done ? " is-done" : "";
+  return `
+    <div class="todo-row${doneClass}" data-todo-row>
+      <input type="checkbox" data-todo-done hidden ${item.done ? "checked" : ""}>
+      <button type="button" class="todo-check-btn" data-todo-check aria-label="done" aria-checked="${item.done ? "true" : "false"}">
+        <svg class="todo-check" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="todo-check-circle" cx="12" cy="12" r="9"></circle>
+          <path class="todo-check-mark" pathLength="1" d="M7 12.5l3.2 3.2L17 8.5"></path>
+        </svg>
+      </button>
+      <input class="field" data-todo-text placeholder="${t("todoItem")}" value="${escapeHtml(item.text)}">
+    </div>`;
+}
+
+function ensureTodoListNotEmpty(list) {
+  if (!list) return;
+  if (!list.querySelector("[data-todo-row]:not(.is-removing)")) {
+    list.insertAdjacentHTML("beforeend", todoRowHtml({ text: "", done: false }));
+  }
+}
+
+function clearTodoRemoval(row) {
+  if (row._todoHoldTimer) {
+    clearTimeout(row._todoHoldTimer);
+    row._todoHoldTimer = null;
+  }
+  if (row._todoRemoveTimer) {
+    clearTimeout(row._todoRemoveTimer);
+    row._todoRemoveTimer = null;
+  }
+}
+
+/**
+ * Клик по кружку: галочка + зачёркивание → пауза 6 с → blur/fade → схлопывание.
+ * Повторный клик до удаления отменяет последовательность.
+ */
+function toggleAnimatedTodo(row) {
+  if (!(row instanceof HTMLElement) || row.classList.contains("is-removing")) return;
+  const box = row.querySelector("[data-todo-done]");
+  const btn = row.querySelector("[data-todo-check]");
+  const willComplete = !row.classList.contains("is-done");
+
+  if (!willComplete) {
+    clearTodoRemoval(row);
+    row.classList.remove("is-done", "is-removing");
+    if (box) box.checked = false;
+    if (btn) btn.setAttribute("aria-checked", "false");
+    return;
+  }
+
+  row.classList.add("is-done");
+  if (box) box.checked = true;
+  if (btn) btn.setAttribute("aria-checked", "true");
+
+  // Автоудаление только после отметки в этой сессии (не для уже сохранённых [x])
+  clearTodoRemoval(row);
+  row._todoHoldTimer = setTimeout(() => {
+    row.classList.add("is-removing");
+    row._todoRemoveTimer = setTimeout(() => {
+      const list = row.parentElement;
+      row.remove();
+      ensureTodoListNotEmpty(list);
+    }, TODO_FADE_MS + TODO_COLLAPSE_MS);
+  }, TODO_HOLD_MS);
+}
+
 function collectNoteBody() {
-  const rows = [...document.querySelectorAll("[data-todo-row]")];
+  const rows = [...document.querySelectorAll("[data-todo-row]:not(.is-removing)")];
   if (!rows.length) return document.getElementById("note-body")?.value || "";
   return encodeChecklist(rows.map((row) => ({
     text: row.querySelector("[data-todo-text]")?.value || "",
-    done: Boolean(row.querySelector("[data-todo-done]")?.checked)
+    done: Boolean(row.querySelector("[data-todo-done]")?.checked) || row.classList.contains("is-done")
   })));
 }
 
@@ -596,11 +669,7 @@ function renderEditor() {
     </div>
     <div class="editor">
       <input class="field title-input" id="note-title" placeholder="${t("title")}" value="${escapeHtml(note.title || "")}">
-      ${isChecklist ? `<div id="todo-list">${items.map((item, index) => `
-        <label class="todo-row" data-todo-row>
-          <input type="checkbox" data-todo-done ${item.done ? "checked" : ""}>
-          <input class="field ${item.done ? "todo-done" : ""}" data-todo-text placeholder="${t("todoItem")}" value="${escapeHtml(item.text)}">
-        </label>`).join("")}</div>
+      ${isChecklist ? `<div id="todo-list">${items.map((item) => todoRowHtml(item)).join("")}</div>
         <button class="btn secondary" id="add-todo-item">${t("todoAdd")}</button>` : `<textarea class="field body-input" id="note-body" placeholder="${t("body")}">${escapeHtml(note.body || "")}</textarea>`}
       <label>${t("folder")}</label>
       <select class="field" id="note-folder">
@@ -863,6 +932,14 @@ function handleAppClick(event) {
   if (!(target instanceof Element)) return;
   if (closestAction(target, "#color-dialog, #folder-dialog, #organize-dialog, #rename-dialog, #folder-pick-dialog")) return;
 
+  const todoCheck = closestAction(target, "[data-todo-check]");
+  if (todoCheck) {
+    event.preventDefault();
+    const row = todoCheck.closest("[data-todo-row]");
+    if (row) toggleAnimatedTodo(row);
+    return;
+  }
+
   const noteMenu = closestAction(target, "[data-note-menu]");
   if (noteMenu) {
     event.preventDefault();
@@ -1003,9 +1080,14 @@ function handleAppClick(event) {
       go("notes");
     }
   } else if (id === "add-todo-item") {
-    persistDraft(document.getElementById("note-title")?.value || "", `${collectNoteBody()}\n- [ ] `, false);
-    editorChecklist = true;
-    render();
+    const list = document.getElementById("todo-list");
+    if (list) {
+      list.insertAdjacentHTML("beforeend", todoRowHtml({ text: "", done: false }));
+    } else {
+      persistDraft(document.getElementById("note-title")?.value || "", `${collectNoteBody()}\n- [ ] `, false);
+      editorChecklist = true;
+      render();
+    }
   } else if (id === "add-folder") openFolderDialog();
   else if (id === "rename-folder") {
     const folder = state.folders.find((item) => item.id === folderId);

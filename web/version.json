@@ -1,7 +1,7 @@
 ﻿{
-  "versionCode": 8,
-  "versionName": "1.4.1",
-  "webVersion": 13,
+  "versionCode": 10,
+  "versionName": "1.4.3",
+  "webVersion": 15,
   "apkUrl": "https://litviv88-tech.github.io/notes-of-breeze/downloads/BreezNotes.apk",
-  "notes": "Одна готовая палитра Breez Blue. Светлую и тёмную тему переключает отдельная кнопка на главном экране."
+  "notes": "Анимированный список дел: галочка, зачёркивание, пауза 6 с и плавное удаление с подъёмом остальных пунктов."
 }
