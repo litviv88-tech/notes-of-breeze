@@ -1,7 +1,7 @@
 {
-  "versionCode": 12,
-  "versionName": "1.4.5",
-  "webVersion": 17,
+  "versionCode": 13,
+  "versionName": "1.4.6",
+  "webVersion": 18,
   "apkUrl": "https://litviv88-tech.github.io/notes-of-breeze/downloads/BreezNotes.apk",
-  "notes": "Кнопка + для новой заметки снова в левом нижнем углу экрана."
+  "notes": "Починка скачивания APK: service worker больше не кэширует установщик, увеличен таймаут обновления в приложении."
 }

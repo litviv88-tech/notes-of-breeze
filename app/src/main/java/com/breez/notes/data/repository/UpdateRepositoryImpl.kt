@@ -153,8 +153,9 @@ class UpdateRepositoryImpl @Inject constructor(
 
     private fun downloadApk(apkUrl: String, onProgress: (Int) -> Unit): File {
         val connection = (URL(apkUrl).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 15_000
-            readTimeout = 60_000
+            connectTimeout = 30_000
+            // APK ~60+ MB: на мобильной сети 60 с часто обрывает загрузку.
+            readTimeout = 10 * 60_000
             instanceFollowRedirects = true
         }
         val length = connection.contentLengthLong

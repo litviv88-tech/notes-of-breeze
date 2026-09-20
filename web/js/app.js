@@ -565,7 +565,7 @@ function renderLanding() {
         <div class="brand"><img src="./icons/icon.svg" alt=""> ${t("app")}</div>
         <div class="actions">
           <button class="icon-btn" data-lang>${state.lang === "ru" ? "EN" : "RU"}</button>
-          <a class="btn" href="${APK}" download="BreezNotes.apk">${t("download")}</a>
+          <a class="btn" href="${APK}">${t("download")}</a>
         </div>
       </header>
       <section class="hero">
@@ -573,7 +573,7 @@ function renderLanding() {
           <h1>${t("heroTitle")}</h1>
           <p>${t("heroText")}</p>
           <div class="hero-actions">
-            <a class="btn" href="${APK}" download="BreezNotes.apk">${t("download")}</a>
+            <a class="btn" href="${APK}">${t("download")}</a>
             <button class="btn secondary" data-go="notes">${t("openWeb")}</button>
           </div>
         </div>
@@ -732,7 +732,7 @@ function renderSettings() {
       <div class="settings-item" data-go="theme"><div><b>${t("appearance")}</b></div><span>›</span></div>
       <div class="settings-item" data-go="wallpaper"><div><b>${t("wallpaper")}</b></div><span>›</span></div>
       <div class="settings-item" id="about"><div><b>${t("about")}</b><div>${t("aboutText")}</div></div></div>
-      <a class="btn block" style="margin-top:20px" href="${APK}" download="BreezNotes.apk">${t("download")}</a>
+      <a class="btn block" style="margin-top:20px" href="${APK}">${t("download")}</a>
       ${renderUpdateSettings()}
     </div>`);
 }

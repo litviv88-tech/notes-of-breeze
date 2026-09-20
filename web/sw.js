@@ -1,4 +1,4 @@
-const CACHE = "breez-notes-web-v13";
+const CACHE = "breez-notes-web-v18";
 const ASSETS = [
   "./index.html",
   "./css/breez.css",
@@ -25,11 +25,20 @@ self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") self.skipWaiting();
 });
 
+function shouldBypass(url) {
+  const path = url.pathname.toLowerCase();
+  return (
+    path.endsWith(".apk") ||
+    path.includes("/downloads/") ||
+    path.endsWith("version.json")
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  if (url.pathname.endsWith("version.json")) {
+  if (shouldBypass(url)) {
     event.respondWith(
       fetch(request, { cache: "no-store" }).catch(() => caches.match(request))
     );
@@ -37,6 +46,7 @@ self.addEventListener("fetch", (event) => {
   }
   event.respondWith(
     fetch(request).then((response) => {
+      if (!response.ok || response.type !== "basic") return response;
       const copy = response.clone();
       caches.open(CACHE).then((cache) => cache.put(request, copy));
       return response;
