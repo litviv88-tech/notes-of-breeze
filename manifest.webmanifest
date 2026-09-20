@@ -1,0 +1,19 @@
+{
+  "name": "Breez Notes",
+  "short_name": "Breez",
+  "description": "Спокойные заметки с палитрами, обоями и папками",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#4A90E2",
+  "theme_color": "#4A90E2",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
