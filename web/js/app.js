@@ -654,7 +654,7 @@ function renderNotes() {
       <input type="file" id="backup-file" accept="application/json,text/plain" hidden>
       ${renderUpdateSettings()}
     </div>
-    <button class="fab" data-new aria-label="${t("notes")}">+</button>`);
+    <button class="fab fab-left" data-new aria-label="${t("notes")}">+</button>`);
 }
 
 function renderEditor() {

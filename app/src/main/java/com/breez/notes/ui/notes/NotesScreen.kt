@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.ImageSearch
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -114,6 +115,7 @@ fun NotesScreen(
                 Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.note_add))
             }
         },
+        floatingActionButtonPosition = FabPosition.Start,
         topBar = {
             BreezTopBar(
                 title = stringResource(R.string.notes_title),

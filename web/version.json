@@ -1,7 +1,7 @@
 ﻿{
-  "versionCode": 15,
-  "versionName": "1.4.8",
-  "webVersion": 20,
+  "versionCode": 16,
+  "versionName": "1.4.9",
+  "webVersion": 21,
   "apkUrl": "https://litviv88-tech.github.io/notes-of-breeze/downloads/BreezNotes.apk",
-  "notes": "В блоке обновления оставлена только новейшая версия."
+  "notes": "Кнопка + для новой заметки перенесена в левый нижний угол."
 }
