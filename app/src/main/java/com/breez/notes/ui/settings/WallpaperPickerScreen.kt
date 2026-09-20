@@ -219,6 +219,7 @@ fun WallpaperPickerScreen(
             source = pendingTrim,
             maxDurationMs = WallpaperSettings.MAX_VIDEO_DURATION_MS,
             hint = stringResource(R.string.video_trim_hint_wallpaper),
+            stripAudio = true,
             onConfirm = { file ->
                 viewModel.setLiveVideo(file)
                 tab = 2

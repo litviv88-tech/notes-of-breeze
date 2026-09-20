@@ -154,7 +154,7 @@
     <string name="wallpaper_tab_color">Color</string>
     <string name="wallpaper_pick_photo">Choose photo</string>
     <string name="wallpaper_pick_video">Choose video</string>
-    <string name="wallpaper_live_hint">Live wallpaper for the app home screen: a clip up to 30 seconds. You can trim it in the app.</string>
+    <string name="wallpaper_live_hint">Live wallpaper for the app home screen: a silent clip up to 30 seconds. You can trim it in the app.</string>
     <string name="wallpaper_dim">Dimming</string>
     <string name="wallpaper_blur">Blur</string>
     <string name="wallpaper_apply">Apply</string>

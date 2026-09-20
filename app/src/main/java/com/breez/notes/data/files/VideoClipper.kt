@@ -34,7 +34,12 @@ class VideoClipper @Inject constructor(
         }
     }
 
-    fun clip(source: Uri, startMs: Long, endMs: Long): File {
+    fun clip(
+        source: Uri,
+        startMs: Long,
+        endMs: Long,
+        stripAudio: Boolean = false
+    ): File {
         val duration = durationMs(source)
         val start = startMs.coerceAtLeast(0L)
         val rawEnd = if (duration > 0L) endMs.coerceAtMost(duration) else endMs
@@ -43,15 +48,22 @@ class VideoClipper @Inject constructor(
             parentFile?.mkdirs()
         }
         val almostFull = start <= 150L && (duration <= 0L || end >= duration - 150L)
-        return if (almostFull) {
+        return if (almostFull && !stripAudio) {
             copy(source, output)
             output
         } else {
-            runCatching { remux(source, output, start * 1_000L, end * 1_000L) }
-                .getOrElse { error ->
-                    output.delete()
-                    throw error
-                }
+            runCatching {
+                remux(
+                    source = source,
+                    dest = output,
+                    startUs = start * 1_000L,
+                    endUs = end * 1_000L,
+                    stripAudio = stripAudio
+                )
+            }.getOrElse { error ->
+                output.delete()
+                throw error
+            }
             output
         }
     }
@@ -62,7 +74,13 @@ class VideoClipper @Inject constructor(
         }
     }
 
-    private fun remux(source: Uri, dest: File, startUs: Long, endUs: Long) {
+    private fun remux(
+        source: Uri,
+        dest: File,
+        startUs: Long,
+        endUs: Long,
+        stripAudio: Boolean = false
+    ) {
         val extractor = MediaExtractor()
         val muxer = MediaMuxer(dest.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
         try {
@@ -77,7 +95,9 @@ class VideoClipper @Inject constructor(
             for (i in 0 until extractor.trackCount) {
                 val format = extractor.getTrackFormat(i)
                 val mime = format.getString(MediaFormat.KEY_MIME) ?: continue
-                if (!mime.startsWith("video/") && !mime.startsWith("audio/")) continue
+                val isVideo = mime.startsWith("video/")
+                val isAudio = mime.startsWith("audio/")
+                if (!isVideo && !(isAudio && !stripAudio)) continue
                 extractor.selectTrack(i)
                 indexMap[i] = muxer.addTrack(format)
                 if (format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) {

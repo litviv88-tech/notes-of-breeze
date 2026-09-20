@@ -55,7 +55,8 @@ fun VideoTrimDialog(
     maxDurationMs: Long,
     hint: String,
     onConfirm: (File) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    stripAudio: Boolean = false
 ) {
     val context = LocalContext.current
     val clipper = remember { VideoClipper(context.applicationContext) }
@@ -123,7 +124,11 @@ fun VideoTrimDialog(
                             VideoView(ctx).apply {
                                 setOnPreparedListener { player ->
                                     player.isLooping = false
-                                    player.setVolume(0.4f, 0.4f)
+                                    if (stripAudio) {
+                                        player.setVolume(0f, 0f)
+                                    } else {
+                                        player.setVolume(0.4f, 0.4f)
+                                    }
                                     seekTo(range.start.toInt())
                                     start()
                                 }
@@ -183,7 +188,8 @@ fun VideoTrimDialog(
                                     clipper.clip(
                                         source = source,
                                         startMs = range.start.toLong(),
-                                        endMs = range.endInclusive.toLong()
+                                        endMs = range.endInclusive.toLong(),
+                                        stripAudio = stripAudio
                                     )
                                 }
                             }

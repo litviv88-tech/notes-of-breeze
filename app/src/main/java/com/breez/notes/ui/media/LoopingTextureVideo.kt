@@ -92,6 +92,7 @@ private fun LoopingTextureVideo(
                                     applyCenterCrop(this@apply, prepared)
                                 }
                                 mediaPlayer.setOnPreparedListener { prepared ->
+                                    if (muted) prepared.setVolume(0f, 0f)
                                     applyCenterCrop(this@apply, prepared)
                                     prepared.start()
                                 }
