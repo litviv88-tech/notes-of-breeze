@@ -3,6 +3,7 @@ package com.breez.notes.ui.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.breez.notes.R
 import com.breez.notes.domain.model.AppUpdateState
@@ -138,8 +140,20 @@ fun UpdateSettingsBlock(
             headlineContent = { Text(stringResource(R.string.update_title)) },
             supportingContent = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(stringResource(R.string.update_current, currentVersion))
-                    Text(stringResource(R.string.update_released, releasedVersion))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(R.string.update_released, releasedVersion),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = stringResource(R.string.update_current, currentVersion),
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.End
+                        )
+                    }
                     if (statusText != null) {
                         Text(statusText)
                     }

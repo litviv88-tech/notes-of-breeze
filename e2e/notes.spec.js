@@ -114,10 +114,10 @@ test.describe("Breez Notes e2e", () => {
   test("настройки показывают текущую и вышедшую версию", async ({ page }) => {
     await openNotes(page);
     await expect(page.getByText("Текущая версия", { exact: true })).toBeVisible();
-    await expect(page.locator(".update-version-row").first()).toContainText("1.4.5");
+    await expect(page.locator(".update-version-row").nth(1)).toContainText("1.4.7");
     await expect.poll(async () => {
-      return page.locator(".update-version-row").nth(1).innerText();
-    }).toContain("1.4.5");
+      return page.locator(".update-version-row").first().innerText();
+    }).toContain("1.4.7");
     await expectWallpaperCoversViewport(page);
   });
 
