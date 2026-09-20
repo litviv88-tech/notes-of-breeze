@@ -9,7 +9,7 @@ Android-приложение и веб-версия для заметок: па�
 | | |
 | --- | --- |
 | Пакет | `com.breez.notes` |
-| Версия | **1.4.8** (`versionCode` 15) |
+| Версия | **1.4.9** (`versionCode` 16) |
 | Min SDK | 26 |
 | Target / Compile SDK | 35 |
 | Репозиторий | [litviv88-tech/notes-of-breeze](https://github.com/litviv88-tech/notes-of-breeze) |

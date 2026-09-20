@@ -3,7 +3,7 @@
 Android-приложение и веб-версия для заметок: папки, списки дел, темы, обои и виджеты.
 
 Пакет: `com.breez.notes`  
-Min SDK 26 · Target / Compile SDK 35 · Версия **1.4.8**
+Min SDK 26 · Target / Compile SDK 35 · Версия **1.4.9**
 
 Документация — отдельный markdown-проект на MkDocs. Страницы лежат в `docs/`, конфиг — `mkdocs.yml`.
 
