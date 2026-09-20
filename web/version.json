@@ -1,7 +1,7 @@
 ﻿{
-  "versionCode": 17,
-  "versionName": "1.5.0",
-  "webVersion": 22,
+  "versionCode": 18,
+  "versionName": "1.5.1",
+  "webVersion": 23,
   "apkUrl": "https://litviv88-tech.github.io/notes-of-breeze/downloads/BreezNotes.apk",
-  "notes": "Отдельный виджет «Список дел» со скроллом и вычёркиванием пунктов."
+  "notes": "Интерфейс как раньше: иконки сверху. Второй виджет «Breez Список дел»."
 }

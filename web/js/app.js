@@ -29,7 +29,7 @@ const I18N = {
     themeToggle: "Светлая / тёмная тема",
     readyPalette: "Единственная готовая палитра",
     about: "О приложении",
-    aboutText: "Breez Notes 1.5.0 — спокойные заметки с палитрой и обоями. Веб-версия хранит данные в этом браузере.",
+    aboutText: "Breez Notes 1.5.1 — спокойные заметки с палитрой и обоями. Веб-версия хранит данные в этом браузере.",
     save: "Сохранить",
     title: "Заголовок",
     body: "Текст заметки",
@@ -122,7 +122,7 @@ const I18N = {
     themeToggle: "Light / dark theme",
     readyPalette: "The only ready palette",
     about: "About",
-    aboutText: "Breez Notes 1.5.0 — calm notes with a palette and wallpapers. The web version stores data in this browser.",
+    aboutText: "Breez Notes 1.5.1 — calm notes with a palette and wallpapers. The web version stores data in this browser.",
     save: "Save",
     title: "Title",
     body: "Note text",
@@ -210,8 +210,8 @@ const KEY = "breez-web-v2";
 const LEGACY_KEYS = ["breez-web-v1", "breez-notes"];
 const SCHEMA_VERSION = 4;
 const APK = "./downloads/BreezNotes.apk";
-const WEB_VERSION = 22;
-const APP_VERSION = "1.5.0";
+const WEB_VERSION = 23;
+const APP_VERSION = "1.5.1";
 
 let waitingWorker = null;
 let updateInfo = {
@@ -632,7 +632,12 @@ function renderNotes() {
   return appScreen(`
     <div class="app-top">
       <div class="brand">${t("notes")}</div>
-      <button class="icon-btn" data-new>+</button>
+      <div class="actions">
+        <button class="icon-btn" data-go="folders" aria-label="${t("folders")}">📁</button>
+        <button class="icon-btn" data-go="theme" aria-label="${t("appearance")}">🎨</button>
+        <button class="icon-btn" data-go="wallpaper" aria-label="${t("wallpaper")}">🖼</button>
+        <button class="icon-btn" data-go="settings" aria-label="${t("settings")}">⚙</button>
+      </div>
     </div>
     <div class="search-wrap"><input class="search" id="search" placeholder="${t("search")}" value="${escapeHtml(query)}"></div>
     <div class="chips">
@@ -646,11 +651,7 @@ function renderNotes() {
     <div class="home-dock">
       <div class="settings-item" data-new-todo><div><b>${t("todoCreate")}</b><div>${t("todoCreateText")}</div></div><span>›</span></div>
       <div class="settings-item" id="add-folder"><div><b>${t("folderCreate")}</b><div>${t("folderCreateText")}</div></div><span>›</span></div>
-      <div class="settings-item" data-go="theme"><div><b>${t("appearance")}</b></div><span>›</span></div>
-      <div class="settings-item" data-go="wallpaper"><div><b>${t("wallpaper")}</b></div><span>›</span></div>
       <div class="settings-item" data-toggle-theme><div><b>${t("themeToggle")}</b><div>${state.themeMode === "DARK" ? t("dark") : t("light")}</div></div><span>›</span></div>
-      <div class="settings-item" data-backup-export><div><b>${t("backup")}</b><div>${t("backupText")}</div></div><span>›</span></div>
-      <div class="settings-item" data-backup-import><div><b>${t("backupImport")}</b><div>${t("backupImportText")}</div></div><span>›</span></div>
       <input type="file" id="backup-file" accept="application/json,text/plain" hidden>
       ${renderUpdateSettings()}
     </div>
@@ -731,6 +732,9 @@ function renderSettings() {
     <div class="pad settings-body">
       <div class="settings-item" data-go="theme"><div><b>${t("appearance")}</b></div><span>›</span></div>
       <div class="settings-item" data-go="wallpaper"><div><b>${t("wallpaper")}</b></div><span>›</span></div>
+      <div class="settings-item" data-backup-export><div><b>${t("backup")}</b><div>${t("backupText")}</div></div><span>›</span></div>
+      <div class="settings-item" data-backup-import><div><b>${t("backupImport")}</b><div>${t("backupImportText")}</div></div><span>›</span></div>
+      <input type="file" id="backup-file" accept="application/json,text/plain" hidden>
       <div class="settings-item" id="about"><div><b>${t("about")}</b><div>${t("aboutText")}</div></div></div>
       <a class="btn block" style="margin-top:20px" href="${APK}">${t("download")}</a>
       ${renderUpdateSettings()}

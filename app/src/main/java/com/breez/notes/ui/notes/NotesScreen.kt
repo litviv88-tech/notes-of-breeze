@@ -24,10 +24,12 @@ import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.ImageSearch
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -41,7 +43,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.breez.notes.R
-import com.breez.notes.data.backup.NotesBackupStore
 import com.breez.notes.domain.model.AppUpdateState
 import com.breez.notes.domain.model.Folder
 import com.breez.notes.domain.model.Note
@@ -75,8 +75,10 @@ fun NotesScreen(
     onOpenNote: (Long) -> Unit,
     onCreateNote: () -> Unit,
     onCreateTodo: () -> Unit,
+    onOpenFolders: () -> Unit,
     onOpenTheme: () -> Unit,
     onOpenWallpaper: () -> Unit,
+    onOpenSettings: () -> Unit,
     updateState: AppUpdateState = AppUpdateState(),
     onCheckUpdate: () -> Unit = {},
     onStartUpdate: () -> Unit = {},
@@ -92,19 +94,8 @@ fun NotesScreen(
     var organizeNote by remember { mutableStateOf<Note?>(null) }
     var organizeAction by remember { mutableStateOf<NoteOrganizeAction?>(null) }
     val snackbar = remember { SnackbarHostState() }
-    val exportBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(NotesBackupStore.MIME_TYPE)) { uri ->
-        uri?.let(viewModel::exportBackup)
-    }
-    val importBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let(viewModel::importBackup)
-    }
     val imageSearch = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(viewModel::searchByImage)
-    }
-    LaunchedEffect(state.backupMessage) {
-        val message = state.backupMessage ?: return@LaunchedEffect
-        snackbar.showSnackbar(message)
-        viewModel.clearBackupMessage()
     }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -121,8 +112,17 @@ fun NotesScreen(
                 title = stringResource(R.string.notes_title),
                 transparent = true,
                 actions = {
-                    IconButton(onClick = onCreateNote) {
-                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.note_add))
+                    IconButton(onClick = onOpenFolders) {
+                        Icon(Icons.Outlined.Folder, contentDescription = stringResource(R.string.folders_title))
+                    }
+                    IconButton(onClick = onOpenTheme) {
+                        Icon(Icons.Outlined.Palette, contentDescription = stringResource(R.string.settings_appearance))
+                    }
+                    IconButton(onClick = onOpenWallpaper) {
+                        Icon(Icons.Outlined.Image, contentDescription = stringResource(R.string.settings_wallpaper))
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings_title))
                     }
                 }
             )
@@ -265,20 +265,6 @@ fun NotesScreen(
                 }
             )
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_appearance)) },
-                supportingContent = { Text(stringResource(R.string.settings_appearance_subtitle)) },
-                leadingContent = { Icon(Icons.Outlined.Palette, contentDescription = null) },
-                colors = ListItemDefaults.colors(containerColor = Transparent),
-                modifier = Modifier.clickable(onClick = onOpenTheme)
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_wallpaper)) },
-                supportingContent = { Text(stringResource(R.string.settings_wallpaper_subtitle)) },
-                leadingContent = { Icon(Icons.Outlined.Image, contentDescription = null) },
-                colors = ListItemDefaults.colors(containerColor = Transparent),
-                modifier = Modifier.clickable(onClick = onOpenWallpaper)
-            )
-            ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_theme_mode)) },
                 supportingContent = {
                     Text(
@@ -310,22 +296,6 @@ fun NotesScreen(
                             ThemeMode.DARK
                         }
                     )
-                }
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.backup_title)) },
-                supportingContent = { Text(stringResource(R.string.backup_subtitle)) },
-                colors = ListItemDefaults.colors(containerColor = Transparent),
-                modifier = Modifier.clickable {
-                    exportBackup.launch(NotesBackupStore.FILE_NAME)
-                }
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.backup_import)) },
-                supportingContent = { Text(stringResource(R.string.backup_import_subtitle)) },
-                colors = ListItemDefaults.colors(containerColor = Transparent),
-                modifier = Modifier.clickable {
-                    importBackup.launch(arrayOf(NotesBackupStore.MIME_TYPE, "text/plain", "*/*"))
                 }
             )
             UpdateSettingsBlock(

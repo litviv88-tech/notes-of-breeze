@@ -3,8 +3,8 @@
     <string name="app_name">Breez Notes</string>
     <string name="widget_name">Breez Notes</string>
     <string name="widget_description">Живые заметки на рабочем столе</string>
-    <string name="todo_widget_name">Список дел</string>
-    <string name="todo_widget_description">Списки дел со скроллом и вычёркиванием пунктов</string>
+    <string name="todo_widget_name">Breez Список дел</string>
+    <string name="todo_widget_description">Отдельный виджет: списки дел, скролл и вычёркивание пунктов</string>
     <string name="todo_widget_empty">Нет списков дел. Создайте список в приложении.</string>
     <string name="todo_widget_config_title">Виджет списка дел</string>
     <string name="todo_widget_max_lists">Количество списков</string>

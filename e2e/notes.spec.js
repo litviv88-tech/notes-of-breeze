@@ -116,7 +116,7 @@ test.describe("Breez Notes e2e", () => {
     await expect(page.getByText("Вышла версия", { exact: true })).toBeVisible();
     await expect.poll(async () => {
       return page.locator(".update-version-row").first().innerText();
-    }).toContain("1.5.0");
+    }).toContain("1.5.1");
     await expectWallpaperCoversViewport(page);
   });
 
