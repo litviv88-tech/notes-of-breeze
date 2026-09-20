@@ -1,7 +1,7 @@
 {
-  "versionCode": 11,
-  "versionName": "1.4.4",
-  "webVersion": 16,
+  "versionCode": 12,
+  "versionName": "1.4.5",
+  "webVersion": 17,
   "apkUrl": "https://litviv88-tech.github.io/notes-of-breeze/downloads/BreezNotes.apk",
-  "notes": "Живые обои без звука: при сохранении ролика аудиодорожка убирается, в превью и на экране звук выключен."
+  "notes": "Кнопка + для новой заметки снова в левом нижнем углу экрана."
 }

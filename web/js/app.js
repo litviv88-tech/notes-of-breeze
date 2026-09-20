@@ -29,7 +29,7 @@ const I18N = {
     themeToggle: "Светлая / тёмная тема",
     readyPalette: "Единственная готовая палитра",
     about: "О приложении",
-    aboutText: "Breez Notes 1.4.1 — спокойные заметки с палитрой и обоями. Веб-версия хранит данные в этом браузере.",
+    aboutText: "Breez Notes 1.4.5 — спокойные заметки с палитрой и обоями. Веб-версия хранит данные в этом браузере.",
     save: "Сохранить",
     title: "Заголовок",
     body: "Текст заметки",
@@ -122,7 +122,7 @@ const I18N = {
     themeToggle: "Light / dark theme",
     readyPalette: "The only ready palette",
     about: "About",
-    aboutText: "Breez Notes 1.4.1 — calm notes with a palette and wallpapers. The web version stores data in this browser.",
+    aboutText: "Breez Notes 1.4.5 — calm notes with a palette and wallpapers. The web version stores data in this browser.",
     save: "Save",
     title: "Title",
     body: "Note text",
@@ -210,8 +210,8 @@ const KEY = "breez-web-v2";
 const LEGACY_KEYS = ["breez-web-v1", "breez-notes"];
 const SCHEMA_VERSION = 4;
 const APK = "./downloads/BreezNotes.apk";
-const WEB_VERSION = 13;
-const APP_VERSION = "1.4.1";
+const WEB_VERSION = 17;
+const APP_VERSION = "1.4.5";
 
 let waitingWorker = null;
 let updateInfo = {
@@ -653,7 +653,8 @@ function renderNotes() {
       <div class="settings-item" data-backup-import><div><b>${t("backupImport")}</b><div>${t("backupImportText")}</div></div><span>›</span></div>
       <input type="file" id="backup-file" accept="application/json,text/plain" hidden>
       ${renderUpdateSettings()}
-    </div>`);
+    </div>
+    <button class="fab fab-left" data-new aria-label="${t("notes")}">+</button>`);
 }
 
 function renderEditor() {
