@@ -111,13 +111,12 @@ test.describe("Breez Notes e2e", () => {
     await expect(page.locator("article.note", { hasText: "Переименованная" })).toHaveCount(2);
   });
 
-  test("настройки показывают текущую и вышедшую версию", async ({ page }) => {
+  test("настройки показывают новейшую версию", async ({ page }) => {
     await openNotes(page);
-    await expect(page.getByText("Текущая версия", { exact: true })).toBeVisible();
-    await expect(page.locator(".update-version-row").nth(1)).toContainText("1.4.7");
+    await expect(page.getByText("Вышла версия", { exact: true })).toBeVisible();
     await expect.poll(async () => {
       return page.locator(".update-version-row").first().innerText();
-    }).toContain("1.4.7");
+    }).toContain("1.4.8");
     await expectWallpaperCoversViewport(page);
   });
 
