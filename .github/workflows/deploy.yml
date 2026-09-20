@@ -39,7 +39,7 @@ jobs:
           python3 - <<PY
           import json
           from pathlib import Path
-          data = json.loads(Path("web/version.json").read_text(encoding="utf-8"))
+          data = json.loads(Path("web/version.json").read_text(encoding="utf-8-sig"))
           code, name = "$CODE", "$NAME"
           assert str(data["versionCode"]) == code, f"versionCode {data['versionCode']} != {code}"
           assert data["versionName"] == name, f"versionName {data['versionName']} != {name}"
